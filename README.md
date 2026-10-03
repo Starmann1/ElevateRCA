@@ -81,7 +81,7 @@ In strict compliance with international elevator safety standards (**EN 81-20/50
 <p align="center">
   <img src="docs/images/05_modular_architecture.png" alt="ElevateRCA Modular Diagnostic & RCA Architecture" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
   <br>
-  <em>Figure 6: ElevateRCA Modular Diagnostic Architecture — Multi-tier interaction between Input Ingestion, Triage, Hybrid RAG, Bayesian Inference, and Explainability Engine</em>
+  <em>Figure 6: Multi-Agent Fault Isolation & RCA Architecture — Multi-tier interaction with Governed Closed-Loop Diagnostic Improvement</em>
 </p>
 
 ```mermaid
@@ -181,7 +181,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph S1["Stage 1: Triage"]
-        IN1["Telemetry Ingestion"] --> EWMA["EWMA Smoothing<br/>(α = 0.25)"]
+        IN1["Telemetry Ingestion"] --> EWMA["EWMA Smoothing<br/>(alpha = 0.25)"]
         EWMA --> CUSUM["Two-Sided CUSUM<br/>(S_H, S_L Drift)"]
         CUSUM --> GATE["Sensor Quality Gating<br/>(Exclude bad/missing)"]
     end
@@ -263,11 +263,11 @@ A single symptom (such as *Motor Overcurrent E101*) can stem from multiple compe
 graph TD
     SYMPTOM["Observed Symptom: Drive Motor Overcurrent Trip (E101)"]
     
-    H1["H1: Inverter IGBT Switch Failure<br/>Prior: 25% | Posterior: 98%"]
-    H2["H2: Stator Winding Inter-Turn Short<br/>Prior: 20% | Posterior: 1%"]
-    H3["H3: Mechanical Hoistway Guide Jam<br/>Prior: 20% | Posterior: 0% (RULED OUT)"]
-    H4["H4: Mechanical Brake Drag / Delayed Pick<br/>Prior: 15% | Posterior: 1%"]
-    H5["H5: V3F Inverter Parameter Mismatch<br/>Prior: 20% | Posterior: 0%"]
+    H1["H1: Inverter IGBT Switch Failure<br/>Prior: 25% — Posterior: 98%"]
+    H2["H2: Stator Winding Inter-Turn Short<br/>Prior: 20% — Posterior: 1%"]
+    H3["H3: Mechanical Hoistway Guide Jam<br/>Prior: 20% — Posterior: 0% [RULED OUT]"]
+    H4["H4: Mechanical Brake Drag / Delayed Pick<br/>Prior: 15% — Posterior: 1%"]
+    H5["H5: V3F Inverter Parameter Mismatch<br/>Prior: 20% — Posterior: 0%"]
 
     SYMPTOM --> H1
     SYMPTOM --> H2
@@ -275,11 +275,11 @@ graph TD
     SYMPTOM --> H4
     SYMPTOM --> H5
 
-    E1["(+) High IGBT Junction Temp (+55°C)"] -->|Likelihood x4.0| H1
+    E1["(+) High IGBT Junction Temp (+55 deg C)"] -->|Likelihood x4.0| H1
     E2["(+) Rapid Current Rise (di/dt > 120A/ms)"] -->|Likelihood x3.5| H1
     
-    E3["(-) Phase Resistance Imbalance < 0.05Ω"] -->|Likelihood x0.1| H2
-    E4["(-) Zero Car Vibration Shock (0.08g Nominal)"] -->|Likelihood x0.01 (Contradiction)| H3
+    E3["(-) Phase Resistance Imbalance < 0.05 Ohm"] -->|Likelihood x0.1| H2
+    E4["(-) Zero Car Vibration Shock (0.08g Nominal)"] -->|Likelihood x0.01 - Contradiction| H3
     E5["(-) Brake Coil Current Pick Fast (120ms)"] -->|Likelihood x0.1| H4
 ```
 
@@ -323,7 +323,7 @@ ElevateRCA implements an interactive, multi-iteration diagnostic state machine i
 <p align="center">
   <img src="docs/images/11_end_to_end_sequence_flow.png" alt="End-to-End RCA Sequence Flow" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
   <br>
-  <em>Figure 11: End-to-End RCA Sequence Flow Timeline — From raw sensor streaming to real-time isolation, reasoning, and human authorization</em>
+  <em>Figure 11: End-to-End RCA Sequence Flow Timeline — From elevator fault event to actionable output with governed closed-loop diagnostic improvement</em>
 </p>
 
 ```mermaid
@@ -341,7 +341,7 @@ stateDiagram-v2
     DIAGNOSTIC_CONFIRMATION --> CORRECTIVE_ACTION: Iteration 3 - Physical Test Outcome Recorded
     
     CORRECTIVE_ACTION --> POST_REPAIR_VALIDATION: Execute OEM Component Repair
-    POST_REPAIR_VALIDATION --> CLOSED: Multi-Cycle Validation Passed (e.g. 5/5 Cycles)
+    POST_REPAIR_VALIDATION --> CLOSED: Multi-Cycle Validation Passed [5 of 5 Cycles]
     POST_REPAIR_VALIDATION --> RCA_REOPENED: Validation Failed or Recurrence Observed
     
     RCA_REOPENED --> RCA_REVISED: Loop to Next Competing Hypothesis
@@ -388,11 +388,11 @@ sequenceDiagram
     CaseMgr->>CaseMgr: NLP Evidence Extraction & Re-score Hypotheses (Iteration 2)
     CaseMgr-->>UI: Updated Hypotheses & Recommended Confirmation Test
 
-    Technician->>UI: Record Physical Diagnostic Test Outcome (e.g. TEST-TRACK-01 = FAIL)
+    Technician->>UI: Record Physical Diagnostic Test Outcome [TEST-TRACK-01 = FAIL]
     UI->>CaseMgr: POST /api/v1/cases/{id}/diagnostic-test
     CaseMgr->>CaseMgr: Confirm Leading Root Cause & Transition to CORRECTIVE_ACTION
 
-    Technician->>UI: Submit Post-Repair Validation (5 Cycles Passed, No Recurrence)
+    Technician->>UI: Submit Post-Repair Validation [5 Cycles Passed, No Recurrence]
     UI->>CaseMgr: POST /api/v1/cases/{id}/post-repair-validation
     CaseMgr->>CaseMgr: Case Transition to CLOSED
 
