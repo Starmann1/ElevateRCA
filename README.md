@@ -22,7 +22,10 @@ ElevateRCA bridges the critical operational gap between **raw alarm detection** 
 1. **Statistical Changepoints & Drift Detection**: Employs **Exponentially Weighted Moving Average (EWMA)** smoothing and **Two-Sided Tabular Cumulative Sum (CUSUM)** control charts to detect subtle mechanical, thermal, and electrical drifts before catastrophic trip thresholds are reached.
 2. **Causal Alarm Cascade Rationalization**: Collapses cascading alarm floods into a single coherent **Fault Episode** using **ISA-18.2** temporal clustering and topological dependency traversal.
 3. **Multi-Hypothesis Bayesian Reasoning**: Evaluates competing physical failure hypotheses across 6 subsystem fault trees using exact Bayesian updating:
-   $$\sum_{i=1}^{n} P(H_i \mid E) = 1.0$$
+
+   $$
+   \sum_{i=1}^{n} P(H_i \mid E) = 1.0
+   $$
 4. **Active Alternative Elimination via Negative Evidence**: Evaluates **4 discrete states of negative evidence** (*True Negative, Missing, Degraded Sensor, Unobserved*) to eliminate candidate causes with mathematical proof.
 5. **Closed-Loop Diagnostic State Machine**: Implements a 5-phase deterministic state machine with technician-in-the-loop observation NLP ingestion, targeted physical confirmation tests, post-repair multi-cycle validation, and full **21-section engineering audit report** generation.
 6. **Principled Abstention**: Calibrates root cause and action confidence separately, safely refusing to speculate when telemetry is degraded or evidence is tied.
@@ -84,67 +87,55 @@ In strict compliance with international elevator safety standards (**EN 81-20/50
   <em>Figure 6: Multi-Agent Fault Isolation & RCA Architecture — Multi-tier interaction with Governed Closed-Loop Diagnostic Improvement</em>
 </p>
 
+### 🔒 SIL-3 Physical Safety Isolation Boundary
+
+ElevateRCA operates strictly as an **out-of-band advisory intelligence system**. The core safety invariant is **zero autonomous control authority over elevator hardware**:
+
 ```mermaid
-flowchart TD
-    subgraph Safety_Loop["Hardware Safety Chain & Physical Elevator Control (SIL-3 / PESSRAL)"]
+flowchart LR
+    subgraph SIL3["Physical Safety Chain (SIL-3 / PESSRAL)"]
         direction TB
-        HARDWARE["EcoDisc PMSM Motor & Electromagnetic Brakes"]
-        SAFETY_CHAIN["Independent Hardwired Safety Loop (Landing Locks, Buffer Switches, Governor)"]
-        CONTROLLER["KONE Controller (KXC / LCE Hardware Logic)"]
-        HARDWARE --- SAFETY_CHAIN
-        SAFETY_CHAIN --- CONTROLLER
+        HARDWARE["EcoDisc Motor & Brakes"]
+        SAFETY["Hardwired Safety Circuit<br/>(Locks, Governor, Buffers)"]
+        CONTROLLER["KONE Controller<br/>(LCE / KXC Hardware Logic)"]
+        HARDWARE --- SAFETY --- CONTROLLER
     end
 
-    subgraph Data_Acquisition["One-Way Read-Only Telemetry Streaming"]
-        IOT["IoT Edge Gateway / Virtual Sensor Array"]
-        CONTROLLER -.->|One-Way Read-Only Stream| IOT
-    end
-
-    subgraph ElevateRCA_Core["ElevateRCA Diagnostic Intelligence Engine"]
+    subgraph BARRIER["Safety Boundary"]
         direction TB
-        STAGE1["Stage 1: Signal Triage Engine<br/>EWMA (α=0.25) + CUSUM (k=0.5σ, h=4.0σ)"]
-        STAGE2["Stage 2: Alarm Cascade Correlation<br/>ISA-18.2 Temporal Clustering (15s Window)"]
-        STAGE3["Stage 3: Evidence Assembly & Hybrid RAG<br/>ChromaDB Vector Store + BM25 Lexical"]
-        STAGE4["Stage 4: Bayesian Multi-Hypothesis RCA<br/>Q1-Q4 Claim Discipline & Variable Elimination"]
-        STAGE5["Stage 5: Dual-Confidence Decision & Synthesis<br/>Root Cause Conf vs Action Conf & Principled Abstention"]
-
-        IOT --> STAGE1
-        STAGE1 --> STAGE2
-        STAGE2 --> STAGE3
-        STAGE3 --> STAGE4
-        STAGE4 --> STAGE5
+        TAP["IoT Optical / CAN Tap<br/>(One-Way Read-Only Stream)"]
+        NO_CTRL["ZERO CONTROL AUTHORITY<br/>(No Inbound Control Links)"]
     end
 
-    subgraph Presentation_Layer["User Experience & Decision Support (FastAPI + HTML5/Tailwind SPA)"]
-        SPA["ElevateRCA Single Page Application (dashboard/dist)"]
-        STATE_MACHINE["5-Phase Closed-Loop Case Manager"]
-        SIM_VIEW["Smart Elevator 2D Physics Simulator"]
-        REPORT_GEN["21-Section Engineering Audit Report Generator"]
-
-        STAGE5 --> SPA
-        SPA --- STATE_MACHINE
-        SPA --- SIM_VIEW
-        SPA --- REPORT_GEN
+    subgraph ADVISORY["ElevateRCA Advisory Intelligence Engine"]
+        direction TB
+        TRIAGE["1. Signal Triage (EWMA / CUSUM)"]
+        CORRELATE["2. ISA-18.2 Cascade Correlation"]
+        RAG_BAYES["3. Hybrid RAG & Bayesian RCA"]
+        SYNTHESIS["4. Dual-Confidence Decision & SOP"]
+        TRIAGE --> CORRELATE --> RAG_BAYES --> SYNTHESIS
     end
 
-    subgraph Human_In_The_Loop["Qualified Elevator Technician & Facility Operations"]
-        TECH["Certified Field Technician (Inspection & Authorization)"]
-        MGR["Building Operations Manager (Downtime & Tenant Impact)"]
-
-        SPA -->|Prioritized SOP Checklist| TECH
-        SPA -->|Operational Impact Dossier| MGR
-        TECH -->|Physical Work Order Sign-Off| CONTROLLER
+    subgraph HUMAN["Human-in-the-Loop Sign-Off Gate"]
+        TECH["Certified Elevator Technician<br/>(Field Inspection & Diagnosis)"]
+        SIGN_OFF["Physical Work Order Sign-Off<br/>(Manual Reset & Verification)"]
+        TECH --> SIGN_OFF
     end
+
+    CONTROLLER -.->|One-Way Read-Only Telemetry| TAP
+    TAP --> TRIAGE
+    SYNTHESIS -->|Prioritized SOP & Reasoning Trace| TECH
+    SIGN_OFF ==>|Manual Physical Action Only| CONTROLLER
 
     classDef safety fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
-    classDef engine fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1;
-    classDef spa fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
-    classDef human fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#e65100;
+    classDef barrier fill:#fff3e0,stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 5,color:#bf360c;
+    classDef engine fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef human fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1;
 
-    class Safety_Loop safety;
-    class ElevateRCA_Core engine;
-    class Presentation_Layer spa;
-    class Human_In_The_Loop human;
+    class SIL3 safety;
+    class BARRIER barrier;
+    class ADVISORY engine;
+    class HUMAN human;
 ```
 
 ```
@@ -220,18 +211,35 @@ flowchart LR
 To isolate incipient elevator mechanical and electrical issues before safety-chain trips occur, ElevateRCA implements real-time **EWMA** and **Two-Sided Tabular CUSUM** trackers in [`pipeline/triage.py`](file:///d:/HACKATHONS/KONE%20Elevate/prototype/ElevateRCA/pipeline/triage.py):
 
 ### 1. Exponentially Weighted Moving Average (EWMA)
+
 Smooths high-frequency sensor noise while responding rapidly to sustained step-shifts:
-$$\bar{x}_t = \alpha \cdot x_t + (1 - \alpha) \cdot \bar{x}_{t-1}$$
-$$\sigma_t^2 = (1 - \alpha) \cdot \left[ \sigma_{t-1}^2 + \alpha \cdot (x_t - \bar{x}_{t-1})^2 \right]$$
-$$z_t = \frac{|x_t - \bar{x}_{t-1}|}{\sigma_{process}}$$
+
+$$
+\bar{x}_t = \alpha \cdot x_t + (1 - \alpha) \cdot \bar{x}_{t-1}
+$$
+
+$$
+\sigma_t^2 = (1 - \alpha) \cdot \left[ \sigma_{t-1}^2 + \alpha \cdot (x_t - \bar{x}_{t-1})^2 \right]
+$$
+
+$$
+z_t = \frac{|x_t - \bar{x}_{t-1}|}{\sigma_{\text{process}}}
+$$
 
 * Parameter: Smoothing factor $\alpha = 0.25$.
 * Normalized $z$-score evaluates deviation against OEM engineering process standards.
 
 ### 2. Two-Sided Tabular CUSUM Control Chart
+
 Detects small, persistent parameter drifts (e.g. accumulation of grit in door sill grooves, brake lining wear, gradual motor thermal degradation):
-$$S_H(t) = \max\left(0, S_H(t-1) + \frac{x_t - \mu_0}{\sigma} - k\right)$$
-$$S_L(t) = \max\left(0, S_L(t-1) - \frac{x_t - \mu_0}{\sigma} - k\right)$$
+
+$$
+S_H(t) = \max\left(0, S_H(t-1) + \frac{x_t - \mu_0}{\sigma} - k\right)
+$$
+
+$$
+S_L(t) = \max\left(0, S_L(t-1) - \frac{x_t - \mu_0}{\sigma} - k\right)
+$$
 
 * Allowance parameter: $k = 0.5\sigma$ (detects shifts of magnitude $1.0\sigma$).
 * Decision threshold: $h = 4.0\sigma$ (out-of-control threshold triggering drift alarm).
@@ -284,14 +292,28 @@ graph TD
 ```
 
 ### Q1–Q4 Claim Discipline & Evidence Aggregation
+
 1. **Prior Odds Formulation**: Historical failure rates and repeat repair history ($FMEA$) establish base prior weights:
-   $$P(H_i)$$
+
+   $$
+   P(H_i)
+   $$
+
    * If a previous repair failed or repeat symptom occurred within 30 days, prior probability is multiplied by $1.4\times$.
+
 2. **Likelihood Multiplier Computation**: Evaluated across 6 independent evidence channels:
-   $$L(E \mid H_i) = \prod_{k=1}^{m} \lambda_k(e_k \mid H_i)$$
+
+   $$
+   L(E \mid H_i) = \prod_{k=1}^{m} \lambda_k(e_k \mid H_i)
+   $$
+
 3. **True Negative Elimination**: If physical contradiction evidence is observed (e.g. roller bearing rotates freely with zero play), the hypothesis likelihood is clamped to $\le 0.01$, ruling it out.
+
 4. **Normalized Posterior Probability**:
-   $$P(H_i \mid E) = \frac{P(H_i) \cdot L(E \mid H_i)}{\sum_{j=1}^{n} P(H_j) \cdot L(E \mid H_j)}$$
+
+   $$
+   P(H_i \mid E) = \frac{P(H_i) \cdot L(E \mid H_i)}{\sum_{j=1}^{n} P(H_j) \cdot L(E \mid H_j)}
+   $$
 
 ---
 
