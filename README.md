@@ -322,7 +322,7 @@ graph TD
 <p align="center">
   <img src="docs/images/07_abstention_state_diagram.png" alt="Agent Failure, Fallback & Abstention State Diagram" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
   <br>
-  <em>Figure 9: Deterministic Fallback & Principled Abstention State Pathways — Safe behavior when data is missing, ambiguous, or contradictory</em>
+  <em>Figure 9: Agent Fallback & Abstention State Pathways with Governed Closed-Loop Learning — Defined, safe behavior when data is missing, ambiguous, or unverified; every case routed through human review</em>
 </p>
 
 ElevateRCA divides diagnostic certainty into **Root Cause Confidence ($C_{diag}$)** and **Action Confidence ($C_{act}$)**:
