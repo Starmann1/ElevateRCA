@@ -28,6 +28,18 @@ ElevateRCA bridges the critical operational gap between **raw alarm detection** 
 6. **Principled Abstention**: Calibrates root cause and action confidence separately, safely refusing to speculate when telemetry is degraded or evidence is tied.
 7. **Decoupled Safety Boundary**: Operates strictly as a **read-only advisory layer** completely isolated from the SIL-3 / PESSRAL physical safety chain.
 
+<p align="center">
+  <img src="docs/images/01_illustrative_scenario.png" alt="Illustrative Real-World Diagnostic Scenario" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 1: Illustrative Real-World Diagnostic Scenario — How a physical door obstruction cascades into multiple consequential system trips</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/02_today_vs_proposed.png" alt="Today vs. With ElevateRCA" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 2: Operational Workflow Transformation — Manual expert-dependent investigation vs. ElevateRCA evidence-driven structured diagnosis</em>
+</p>
+
 ---
 
 ## 🎯 What ElevateRCA IS vs. What It IS NOT
@@ -42,11 +54,35 @@ ElevateRCA bridges the critical operational gap between **raw alarm detection** 
 | **Uncertainty** | **Principled Abstention** (refuses to guess on degraded data) | **Forced Decision Engine** that guesses despite missing sensors |
 | **Frontend UI** | **High-Performance HTML5 / Tailwind SPA** + 2D Physics Simulator | **Generic Dashboard** without physical context or kinematics |
 
+<p align="center">
+  <img src="docs/images/03_key_differentiators.png" alt="6 Key Differentiators" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 3: 6 Core Architectural Differentiators & Value Outcomes delivered by ElevateRCA</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/04_system_context.png" alt="System Context: Data Sources to Actionable Output" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 4: System Context — Seamless end-to-end data pipeline from 5 disparate data sources to 4 actionable outputs</em>
+</p>
+
 ---
 
 ## 🛡️ Safety & Architectural Boundaries
 
 In strict compliance with international elevator safety standards (**EN 81-20/50**, **ASME A17.1-2013**, **IEC 61508 SIL-3**, and **PESSRAL**), ElevateRCA enforces an uncompromising one-way isolation boundary:
+
+<p align="center">
+  <img src="docs/images/06_master_architecture_blueprint.png" alt="ElevateRCA Master System Architecture Blueprint" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 5: Master System Architecture Blueprint — 8-Stage Read-Only Advisory Layer, Safety-Chain Isolation Barrier & Technology Stack</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/05_modular_architecture.png" alt="ElevateRCA Modular Diagnostic & RCA Architecture" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 6: ElevateRCA Modular Diagnostic Architecture — Multi-tier interaction between Input Ingestion, Triage, Hybrid RAG, Bayesian Inference, and Explainability Engine</em>
+</p>
 
 ```mermaid
 flowchart TD
@@ -211,6 +247,18 @@ $$S_L(t) = \max\left(0, S_L(t-1) - \frac{x_t - \mu_0}{\sigma} - k\right)$$
 
 A single symptom (such as *Motor Overcurrent E101*) can stem from multiple competing physical failure modes:
 
+<p align="center">
+  <img src="docs/images/08_confidence_scoring_worked_example.png" alt="Evidence Evaluation and Confidence Scoring" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 7: Evidence Evaluation & Confidence Scoring Worked Example — Multi-hypothesis Bayesian reasoning isolating IGBT Failure (72%) vs. Mechanical Jam (21%)</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/09_subsystem_fault_tree.png" alt="Elevator Subsystem Fault Tree Taxonomy" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 8: Elevator Subsystem Fault-Tree & Taxonomy — Exhaustive breakdown of failure modes and observable signals across 5 core subsystems</em>
+</p>
+
 ```mermaid
 graph TD
     SYMPTOM["Observed Symptom: Drive Motor Overcurrent Trip (E101)"]
@@ -247,9 +295,36 @@ graph TD
 
 ---
 
+## 🚫 Principled Abstention & Fallback Pathways
+
+<p align="center">
+  <img src="docs/images/07_abstention_state_diagram.png" alt="Agent Failure, Fallback & Abstention State Diagram" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 9: Deterministic Fallback & Principled Abstention State Pathways — Safe behavior when data is missing, ambiguous, or contradictory</em>
+</p>
+
+ElevateRCA divides diagnostic certainty into **Root Cause Confidence ($C_{diag}$)** and **Action Confidence ($C_{act}$)**:
+* **High Confidence ($C_{diag} \ge 0.85$):** Concrete diagnosis with specific corrective action.
+* **Medium Confidence ($0.60 \le C_{diag} < 0.85$):** Probable diagnosis with targeted pre-repair verification steps.
+* **Low / Ambiguous / Degraded Telemetry ($C_{diag} < 0.60$ or $\ge 35\%$ missing signals):** **Principled Abstention** — the system explicitly refuses to guess, surfaces all competing candidates without picking a false winner, and directs senior technician manual review.
+
+---
+
 ## 🔄 5-Phase Closed-Loop Case Management
 
 ElevateRCA implements an interactive, multi-iteration diagnostic state machine in [`pipeline/state.py`](file:///d:/HACKATHONS/KONE%20Elevate/prototype/ElevateRCA/pipeline/state.py) and [`api/routes/cases.py`](file:///d:/HACKATHONS/KONE%20Elevate/prototype/ElevateRCA/api/routes/cases.py):
+
+<p align="center">
+  <img src="docs/images/10_continuous_improvement_flywheel.png" alt="Continuous Improvement Closed-Loop Flywheel" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 10: Continuous Improvement Closed-Loop Flywheel — Turning verified field outcomes into Bayesian prior and rule enhancements</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/11_end_to_end_sequence_flow.png" alt="End-to-End RCA Sequence Flow" width="95%" style="border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" />
+  <br>
+  <em>Figure 11: End-to-End RCA Sequence Flow Timeline — From raw sensor streaming to real-time isolation, reasoning, and human authorization</em>
+</p>
 
 ```mermaid
 stateDiagram-v2
@@ -364,6 +439,24 @@ ElevateRCA/
 │   └── dist/
 │       ├── index.html             # High-performance Tailwind SPA
 │       └── elevator_sim.js        # 2D Elevator Physics & Sensor Simulation Engine
+├── docs/                          # Comprehensive System Documentation & High-Res Images
+│   ├── images/                    # 11 High-Resolution Architecture & Taxonomy Diagrams
+│   │   ├── 01_illustrative_scenario.png
+│   │   ├── 02_today_vs_proposed.png
+│   │   ├── 03_key_differentiators.png
+│   │   ├── 04_system_context.png
+│   │   ├── 05_modular_architecture.png
+│   │   ├── 06_master_architecture_blueprint.png
+│   │   ├── 07_abstention_state_diagram.png
+│   │   ├── 08_confidence_scoring_worked_example.png
+│   │   ├── 09_subsystem_fault_tree.png
+│   │   ├── 10_continuous_improvement_flywheel.png
+│   │   └── 11_end_to_end_sequence_flow.png
+│   ├── API.md                     # REST API specification
+│   ├── ARCHITECTURE.md            # System architecture details
+│   ├── CLOSED_LOOP_DIAGNOSTICS.md # 5-Phase State Machine specification
+│   ├── DEMO_SCENARIO.md           # Master demo walk-through guide
+│   └── RCA_REASONING.md           # Mathematical Bayesian RCA formulation
 ├── pipeline/                      # Core Bayesian & Anomaly Engine
 │   ├── __init__.py                # Unified package exports
 │   ├── bayesian_rca.py            # Bayesian RCA Engine with Q1-Q4 discipline
@@ -407,12 +500,6 @@ ElevateRCA/
 │   ├── kone guide maintainance procdure.pdf
 │   ├── sets-11.pdf
 │   └── sets_egov_*.pdf
-├── docs/                          # Comprehensive System Documentation
-│   ├── API.md                     # REST API specification
-│   ├── ARCHITECTURE.md            # System architecture details
-│   ├── CLOSED_LOOP_DIAGNOSTICS.md # 5-Phase State Machine specification
-│   ├── DEMO_SCENARIO.md           # Master demo walk-through guide
-│   └── RCA_REASONING.md           # Mathematical Bayesian RCA formulation
 ├── tests/                         # Pytest Verification Suite (38 Tests)
 │   ├── conftest.py                # Test fixtures & test paths
 │   ├── test_50_telemetries.py     # 20 Door Telemetries automated test
@@ -537,7 +624,7 @@ tests/test_models.py::test_measurement_evidence PASSED                   [ 55%]
 tests/test_models.py::test_hypothesis_state_transitions PASSED           [ 57%]
 tests/test_models.py::test_post_repair_validation PASSED                 [ 60%]
 tests/test_rag.py::test_guide_file_classification PASSED                 [ 63%]
-tests/test_rag.py::test_troubleshooting_dataset_parsing PASSED           [ 65%]
+tests/test_troubleshooting_dataset_parsing PASSED                         [ 65%]
 tests/test_rag.py::test_rag_ingestion_and_retrieval PASSED               [ 68%]
 tests/test_scenarios.py::test_scenario_1_igbt_overcurrent PASSED         [ 71%]
 tests/test_scenarios.py::test_scenario_2_mechanical_jam PASSED           [ 73%]
