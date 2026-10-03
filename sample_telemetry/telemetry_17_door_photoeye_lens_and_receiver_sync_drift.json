@@ -1,0 +1,49 @@
+{
+  "elevator_id": "KONE-DOOR-207",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MiniSpace",
+  "installation_age_years": 3.8,
+  "verification_stage": "TWO_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_photoeye_obstruction",
+      "alarm_type": "door_photoeye_obstruction",
+      "severity": "warning",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:30:00.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_cycle_time_ms",
+      "value": 4400.0,
+      "unit": "ms",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:30:00.000Z",
+      "baseline_value": 2800.0,
+      "deviation_pct": 57.1
+    },
+    {
+      "signal_name": "photoeye_state_erratic",
+      "value": "TRUE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:30:00.000Z",
+      "baseline_value": "FALSE",
+      "deviation_pct": 0.0
+    },
+    {
+      "signal_name": "reopen_location_consistent",
+      "value": "FALSE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:30:00.000Z",
+      "baseline_value": "FALSE",
+      "deviation_pct": 0.0
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "Transmitter lens clouded. In addition, curtain sync controller shows clock drift under elevated hoistway temperatures."
+}

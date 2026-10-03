@@ -1,0 +1,412 @@
+# ElevateRCA — Comprehensive Five-Subsystem Failure Modes & Fault Trees Knowledge Base
+# Directly aligned with KONE Elevate Five-Subsystem Fault Dictionary PDF
+
+subsystems:
+  drive_motor:
+    name: "Drive / Motor Subsystem"
+    primary_fault: "motor_overcurrent"
+    hypotheses:
+      - id: "RC1"
+        name: "IGBT / Power Electronics Failure"
+        prior: 0.18
+        expected_signals:
+          motor_current_rms: { anomaly: "SEVERELY_ELEVATED", pattern: "step" }
+          igbt_temp: { anomaly: "ELEVATED" }
+          drive_self_test: { state: "FAILED" }
+          drive_internal_fault_flag: { state: "TRUE" }
+        contradictions:
+          - "drive_self_test == PASSED"
+          - "drive_internal_fault_flag == FALSE"
+        elimination_rule: "Clean drive self-test eliminates internal IGBT failure."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED", "DECELERATING", "FAULT_STOP"]
+
+      - id: "RC2"
+        name: "Mechanical Obstruction (Hoistway or Guide Rails)"
+        prior: 0.15
+        expected_signals:
+          motor_current_rms: { anomaly: "ELEVATED" }
+          vibration_rms: { anomaly: "ELEVATED" }
+          drive_self_test: { state: "PASSED" }
+          drive_internal_fault_flag: { state: "FALSE" }
+        contradictions:
+          - "operating_state == DOOR_OPEN"
+          - "drive_self_test == FAILED"
+        elimination_rule: "Drive self-test failure indicates internal drive issue, eliminating external mechanical obstruction."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED", "DECELERATING"]
+
+      - id: "RC3"
+        name: "Brake Drag / Insufficient Brake Release"
+        prior: 0.22
+        expected_signals:
+          motor_current_rms: { anomaly: "ELEVATED" }
+          brake_release_delay: { anomaly: "ELEVATED", threshold_ms: 300 }
+          motor_torque_demand: { anomaly: "SEVERELY_ELEVATED" }
+          drive_self_test: { state: "PASSED" }
+        contradictions:
+          - "drive_self_test == FAILED"
+          - "brake_release_delay == NORMAL"
+        elimination_rule: "Drive self-test failure or instantaneous zero brake delay refutes brake drag."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED"]
+
+      - id: "RC4"
+        name: "Motor Winding Fault (Insulation Degradation / Short)"
+        prior: 0.12
+        expected_signals:
+          phase_current_imbalance: { anomaly: "ELEVATED" }
+          motor_temp: { anomaly: "ELEVATED" }
+        contradictions:
+          - "phase_current_imbalance == NORMAL"
+        elimination_rule: "Symmetrical balanced phase currents strongly contradict winding fault."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED", "IDLE"]
+
+      - id: "RC5"
+        name: "Seized Bearing / Machine Assembly Friction"
+        prior: 0.10
+        expected_signals:
+          vibration_rms: { anomaly: "SEVERELY_ELEVATED" }
+          motor_temp: { anomaly: "ELEVATED" }
+          motor_current_rms: { anomaly: "ELEVATED" }
+        contradictions:
+          - "vibration_rms == NORMAL"
+        elimination_rule: "Zero vibration during motion refutes seized bearing friction."
+        expected_operating_states: ["CONSTANT_SPEED", "ACCELERATING"]
+
+      - id: "RC6"
+        name: "DC Bus Voltage / Regenerative Braking Chopper Fault"
+        prior: 0.08
+        expected_signals:
+          dc_bus_voltage: { anomaly: "SEVERELY_ELEVATED" }
+        contradictions:
+          - "dc_bus_voltage == NORMAL"
+        elimination_rule: "Stable DC intermediate bus voltage eliminates chopper breakdown."
+        expected_operating_states: ["DECELERATING"]
+
+      - id: "RC7"
+        name: "Cable Fault / Terminal Loose Connection"
+        prior: 0.08
+        expected_signals:
+          motor_current_rms: { anomaly: "SPIKE" }
+        contradictions: []
+        elimination_rule: "Continuous smooth current draw reduces intermittent cable vibration fault."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED", "DECELERATING"]
+
+      - id: "RC8"
+        name: "VFD Parameter Misconfiguration"
+        prior: 0.07
+        expected_signals:
+          motor_current_rms: { anomaly: "ELEVATED" }
+        contradictions:
+          - "maintenance_history_recent_parameter_change == FALSE"
+        elimination_rule: "No recent software update reduces VFD parameter misconfiguration probability."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED"]
+
+  door:
+    name: "Door System"
+    primary_fault: "door_close_timeout"
+    hypotheses:
+      - id: "RC1"
+        name: "Photo-eye / Light Curtain Degradation or Misalignment"
+        prior: 0.28
+        expected_signals:
+          door_cycle_time_ms: { anomaly: "DRIFT" }
+          photoeye_state_erratic: { state: "TRUE" }
+          reopen_location_consistent: { state: "FALSE" }
+        contradictions:
+          - "reopen_location_consistent == TRUE"
+        elimination_rule: "Reopen occurring consistently at exact same physical position points to mechanical obstacle, not sensor drift."
+        expected_operating_states: ["DOOR_CLOSE", "DOOR_OPEN"]
+
+      - id: "RC2"
+        name: "Physical Track Obstruction / Sill Debris"
+        prior: 0.20
+        expected_signals:
+          door_motor_current: { anomaly: "SPIKE" }
+          reopen_location_consistent: { state: "TRUE" }
+        contradictions:
+          - "reopen_location_consistent == FALSE"
+          - "photoeye_state_erratic == TRUE"
+        elimination_rule: "Reopens at random varying door positions contradict a fixed physical sill blockage."
+        expected_operating_states: ["DOOR_CLOSE"]
+
+      - id: "RC3"
+        name: "Track Misalignment / Geometric Placement Distortion"
+        prior: 0.20
+        # Boosted when maintenance history shows repeat roller replacement (prior misdiagnosis)
+        repeat_repair_component: "Door Roller"
+        expected_signals:
+          door_motor_current: { anomaly: "ELEVATED", pattern: "gradual" }
+          door_cycle_time_ms: { anomaly: "ELEVATED" }
+          vibration_rms: { anomaly: "ELEVATED" }
+        contradictions:
+          - "door_motor_current == NORMAL"
+        elimination_rule: "Normal door motor current profile eliminates track binding."
+        expected_operating_states: ["DOOR_CLOSE", "DOOR_OPEN"]
+
+      - id: "RC4"
+        name: "Door Roller / Bearing Mechanical Wear"
+        prior: 0.15
+        expected_signals:
+          door_motor_current: { anomaly: "ELEVATED" }
+          door_cycle_time_ms: { anomaly: "ELEVATED" }
+        contradictions:
+          - "door_motor_current == NORMAL"
+        elimination_rule: "Smooth low door motor current profile eliminates heavy mechanical bearing friction."
+        expected_operating_states: ["DOOR_CLOSE", "DOOR_OPEN"]
+
+      - id: "RC5"
+        name: "Door Lock / Interlock Contact Pitting or Wear"
+        prior: 0.10
+        expected_signals:
+          door_lock_confirmed: { state: "FALSE" }
+          door_fully_closed: { state: "TRUE" }
+        contradictions:
+          - "door_lock_confirmed == TRUE"
+        elimination_rule: "Firm mechanical interlock confirmation rules out door contact failure."
+        expected_operating_states: ["DOOR_CLOSE"]
+
+      - id: "RC6"
+        name: "Door Drive Belt Wear / Tension Slip"
+        prior: 0.07
+        expected_signals:
+          door_speed_variation: { anomaly: "ELEVATED" }
+        contradictions: []
+        elimination_rule: "Linear door travel speed profile rules out belt slippage."
+        expected_operating_states: ["DOOR_CLOSE", "DOOR_OPEN"]
+
+  brake_traction:
+    name: "Brake / Traction Subsystem"
+    primary_fault: "brake_fault"
+    hypotheses:
+      - id: "RC1"
+        name: "Brake Release Timing Violation"
+        prior: 0.30
+        expected_signals:
+          brake_release_delay: { anomaly: "ELEVATED" }
+          motor_torque_demand: { anomaly: "NORMAL" }
+          position_drift_mm: { anomaly: "ELEVATED" }
+        contradictions:
+          - "motor_torque_demand == SEVERELY_ELEVATED"
+        elimination_rule: "Severely elevated motor torque indicates mechanical drag rather than pure electrical delay timing."
+        expected_operating_states: ["ACCELERATING", "IDLE"]
+
+      - id: "RC2"
+        name: "Brake Lining Friction Degradation / Pad Wear"
+        prior: 0.22
+        expected_signals:
+          position_drift_mm: { anomaly: "ELEVATED" }
+          brake_holding_force: { anomaly: "DROPPING" }
+        contradictions:
+          - "position_drift_mm == NORMAL"
+        elimination_rule: "Zero position drift under full car test load contradicts brake pad lining wear."
+        expected_operating_states: ["IDLE", "FAULT_STOP"]
+
+      - id: "RC3"
+        name: "Brake Actuation Solenoid / Coil Electrical Degradation"
+        prior: 0.18
+        expected_signals:
+          brake_coil_current: { anomaly: "DROPPING" }
+          brake_status_confirmed: { state: "FALSE" }
+        contradictions:
+          - "brake_coil_current == NORMAL"
+        elimination_rule: "Nominal coil hold and pull-in current contradicts coil electrical breakdown."
+        expected_operating_states: ["ACCELERATING", "DECELERATING", "IDLE"]
+
+      - id: "RC4"
+        name: "Traction Rope Degradation / Sheave Groove Wear"
+        prior: 0.15
+        expected_signals:
+          traction_slip_ratio: { anomaly: "ELEVATED" }
+          vibration_rms: { anomaly: "ELEVATED" }
+          wire_break_count: { anomaly: "ELEVATED" }
+        contradictions:
+          - "traction_slip_ratio == NORMAL"
+        elimination_rule: "Zero slip between sheave groove and rope eliminates rope deterioration."
+        expected_operating_states: ["ACCELERATING", "CONSTANT_SPEED"]
+
+      - id: "RC5"
+        name: "Unequal Rope Tension / Counterweight Imbalance"
+        prior: 0.08
+        expected_signals:
+          directional_current_imbalance: { anomaly: "ELEVATED" }
+          rope_tension_imbalance: { anomaly: "ELEVATED" }
+        contradictions:
+          - "directional_current_imbalance == NORMAL"
+        elimination_rule: "Equal up and down trip motor current draws rule out counterweight imbalance."
+        expected_operating_states: ["CONSTANT_SPEED"]
+
+      - id: "RC6"
+        name: "Overspeed Governor / Safety Gear Activation (UCMP)"
+        prior: 0.07
+        expected_signals:
+          safety_gear_switch_state: { state: "OPEN" }
+        contradictions:
+          - "safety_gear_switch_state == CLOSED"
+        elimination_rule: "Closed electrical safety gear switch confirms governor safety gear did not deploy."
+        expected_operating_states: ["FAULT_STOP", "DECELERATING"]
+
+  encoder_position:
+    name: "Encoder / Position Subsystem"
+    primary_fault: "leveling_deviation"
+    hypotheses:
+      - id: "RC1"
+        name: "Encoder Signal Degradation (Optical Contamination / Pulse Loss)"
+        prior: 0.35
+        expected_signals:
+          position_actual_divergence: { anomaly: "ELEVATED" }
+          leveling_deviation_mm: { anomaly: "ELEVATED" }
+          independent_leveling_sensor_drift: { state: "FALSE" }
+        contradictions:
+          - "independent_leveling_sensor_drift == TRUE"
+        elimination_rule: "Independent floor sensor confirming real car displacement indicates physical movement, not encoder signal flaw."
+        expected_operating_states: ["DECELERATING", "CONSTANT_SPEED", "IDLE"]
+
+      - id: "RC2"
+        name: "Encoder Mounting Looseness / Coupling Slippage"
+        prior: 0.20
+        expected_signals:
+          position_actual_divergence: { anomaly: "SPIKE" }
+          vibration_rms: { anomaly: "ELEVATED" }
+        contradictions: []
+        elimination_rule: "Stable smooth position increment profile contradicts mechanical coupling slippage."
+        expected_operating_states: ["ACCELERATING", "DECELERATING"]
+
+      - id: "RC3"
+        name: "Floor Calibration / Leveling Vane Misalignment"
+        prior: 0.18
+        expected_signals:
+          leveling_deviation_mm: { anomaly: "ELEVATED" }
+          isolated_to_single_floor: { state: "TRUE" }
+        contradictions:
+          - "isolated_to_single_floor == FALSE"
+        elimination_rule: "Leveling errors across all landings eliminate single-floor vane misalignment."
+        expected_operating_states: ["IDLE", "DECELERATING"]
+
+      - id: "RC4"
+        name: "Traction Rope Creep / Physical Slip"
+        prior: 0.15
+        expected_signals:
+          independent_leveling_sensor_drift: { state: "TRUE" }
+        contradictions:
+          - "independent_leveling_sensor_drift == FALSE"
+        elimination_rule: "Independent sensor showing car at exact floor level refutes physical rope slip."
+        expected_operating_states: ["DECELERATING", "IDLE"]
+
+      - id: "RC5"
+        name: "Guide Rail Distortion / Localized Shaft Binding"
+        prior: 0.12
+        expected_signals:
+          vibration_rms: { anomaly: "ELEVATED" }
+          localized_to_shaft_height: { state: "TRUE" }
+        contradictions: []
+        elimination_rule: "Uniform vibration profile throughout entire travel height contradicts localized rail fault."
+        expected_operating_states: ["CONSTANT_SPEED"]
+
+  safety_chain:
+    name: "Controller / Safety-Circuit Subsystem"
+    primary_fault: "safety_chain_open"
+    hypotheses:
+      - id: "RC1"
+        name: "Door Zone / Landing Door Lock Interlock Interruption"
+        prior: 0.30
+        expected_signals:
+          door_lock_confirmed: { state: "FALSE" }
+          door_closed_limit: { state: "TRUE" }
+        contradictions:
+          - "door_lock_confirmed == TRUE"
+        elimination_rule: "Confirmed closed door interlock loop rules out door lock trip."
+        expected_operating_states: ["DOOR_CLOSE", "CONSTANT_SPEED", "ACCELERATING"]
+
+      - id: "RC2"
+        name: "Buffer / Final Limit Switch Activation"
+        prior: 0.20
+        expected_signals:
+          car_position_terminal: { state: "TRUE" }
+          limit_switch_state: { state: "OPEN" }
+        contradictions:
+          - "car_position_terminal == FALSE"
+        elimination_rule: "Elevator located at mid-shaft cannot physically engage terminal buffer limit switches."
+        expected_operating_states: ["FAULT_STOP"]
+
+      - id: "RC3"
+        name: "Overspeed Governor Electrical Contact Trip"
+        prior: 0.15
+        expected_signals:
+          car_velocity_pct: { anomaly: "SEVERELY_ELEVATED" }
+          governor_switch: { state: "OPEN" }
+        contradictions:
+          - "car_velocity_pct == NORMAL"
+        elimination_rule: "Normal rated speed logging contradicts mechanical overspeed condition."
+        expected_operating_states: ["CONSTANT_SPEED", "ACCELERATING"]
+
+      - id: "RC4"
+        name: "Emergency Stop Switch Manual Activation"
+        prior: 0.15
+        expected_signals:
+          estop_switch_state: { state: "OPEN" }
+        contradictions:
+          - "estop_switch_state == CLOSED"
+        elimination_rule: "Closed emergency stop loop contradicts manual e-stop actuation."
+        expected_operating_states: ["ANY"]
+
+      - id: "RC5"
+        name: "Safety Relay Contact Bounce / Oxidation"
+        prior: 0.12
+        expected_signals:
+          safety_chain_flicker_count: { anomaly: "ELEVATED" }
+        contradictions: []
+        elimination_rule: "Solid latching open state without contact chatter contradicts relay contact bounce."
+        expected_operating_states: ["ANY"]
+
+      - id: "RC6"
+        name: "Controller Power Supply Ripple / CPU Watchdog Reboot"
+        prior: 0.08
+        expected_signals:
+          controller_reboot_count: { anomaly: "ELEVATED" }
+          multiple_unrelated_faults: { state: "TRUE" }
+        contradictions:
+          - "controller_reboot_count == 0"
+        elimination_rule: "Continuous controller uptime without CPU reset eliminates watchdog reboot."
+        expected_operating_states: ["ANY"]
+
+  sensor_env:
+    name: "Sensors / Instrumentation Subsystem"
+    primary_fault: "sensor_implausible_reading"
+    hypotheses:
+      - id: "RC1"
+        name: "Sensor Hardware Failure / Calibration Drift"
+        prior: 0.28
+        expected_signals:
+          corroborating_sensor_match: { state: "FALSE" }
+          sensor_quality: { state: "BAD" }
+        contradictions:
+          - "corroborating_sensor_match == TRUE"
+        elimination_rule: "Independent sensor corroboration confirms physical phenomenon is genuine, not sensor failure."
+        expected_operating_states: ["ANY"]
+
+      - id: "RC2"
+        name: "Load Weighing Cell Miscalibration (Nuisance Overload)"
+        prior: 0.24
+        expected_signals:
+          load_measurement_deviation: { anomaly: "ELEVATED" }
+        contradictions: []
+        elimination_rule: "Nominal load calibration test confirms load cell accuracy."
+        expected_operating_states: ["IDLE", "DOOR_OPEN"]
+
+      - id: "RC3"
+        name: "Machine Room Thermal Stress / Ambient Overheat"
+        prior: 0.24
+        expected_signals:
+          machine_room_temp_c: { anomaly: "SEVERELY_ELEVATED" }
+        contradictions:
+          - "machine_room_temp_c == NORMAL"
+        elimination_rule: "Nominal ambient machine room temperature eliminates thermal runaway."
+        expected_operating_states: ["ANY"]
+
+      - id: "RC4"
+        name: "Accelerometer / Vibration Sensor Mounting Looseness"
+        prior: 0.24
+        expected_signals:
+          sensor_signal_noise: { anomaly: "SPIKE" }
+        contradictions: []
+        elimination_rule: "Firm rigid mechanical sensor coupling refutes mounting rattle."
+        expected_operating_states: ["CONSTANT_SPEED", "ACCELERATING"]

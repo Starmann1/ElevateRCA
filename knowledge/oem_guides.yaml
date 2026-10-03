@@ -1,0 +1,208 @@
+# KONE Elevate — OEM Field Maintenance Guides & Quantitative Engineering Standards
+# Compiled from GUIDE/ OEM Manuals, KONE MX10/MX20 MCP Procedures, SETS-11 and Troubleshooting Datasets
+
+engineering_standards:
+  brake_subsystem:
+    gearless_pmsm:
+      model: "KONE EcoDisc MX10 / MX20 Permanent Magnet Synchronous Motor"
+      nominal_brake_air_gap_mm: 0.30
+      air_gap_tolerance_min_mm: 0.25
+      air_gap_tolerance_max_mm: 0.40
+      min_pad_thickness_standard_a_mm: 3.5
+      min_pad_thickness_standard_b_mm: 2.5
+      critical_wear_limit_mm: 2.0
+      microswitch_chatter_threshold_ms: 50.0
+      holding_torque_test_ratio: 1.25  # Must hold 125% rated load at rest
+      inspection_interval_months: 6
+
+  traction_and_hoisting_ropes:
+    standard: "ISO 4309 / ASME A17.1-2013"
+    nominal_rope_diameter_mm: 8.0  # or 10.0mm depending on car duty
+    max_diameter_reduction_pct: 6.0  # Immediate replacement if > 6% diameter loss
+    max_broken_wires_per_lay_length: 6  # Single strand: 3, All strands: 6
+    crown_wear_limit_pct: 33.0  # Outer wire wear > 1/3 original diameter
+    tension_variation_tolerance_pct: 10.0  # Equal tension across all ropes within 10%
+    sheave_undercut_groove_depth_min_mm: 1.5
+
+  door_subsystem:
+    standard: "D55007-A / KONE AMD Operator"
+    door_sill_clearance_gap_mm: 4.0
+    door_sill_clearance_tolerance_mm: 1.0
+    roller_eccentric_bushing_clearance_mm: 0.20
+    max_reopen_cycles_before_nudge: 3
+    light_curtain_optical_attenuation_max_pct: 40.0
+    door_interlock_contact_engagement_min_mm: 7.0
+    door_closing_kinetic_energy_limit_joules: 10.0  # ASME A17.1 Rule 2.13.4.2
+
+  sets_terminal_slowdown:
+    type: "SETS-01 / SETS-11 (Smooth Emergency Terminal Slowdown)"
+    egov_setting_values: ["8", "9", "A", "B", "D", "E", "F"]
+    governor_encoder_pulse_tolerance_pct: 1.5
+    slowdown_switch_position_tolerance_mm: 10.0
+    terminal_landing_overtravel_buffer_runby_mm: 150.0
+
+troubleshooting_records:
+  - id: "ELV-001"
+    component: "Traction Machine"
+    symptom: "Abnormal noise or vibration during travel"
+    alarm: "None / machine-related fault if reported"
+    evidence: "Noise or vibration observed during operation"
+    possible_causes: "Bearing wear; alignment issue; mechanical looseness; traction-system wear"
+    maintenance_check: "Visual/condition inspection and comparison with normal operating behavior"
+    recommended_action: "Record condition and refer to the OEM maintenance procedure for qualified inspection"
+    priority: "High"
+    root_cause_category: "Mechanical"
+
+  - id: "ELV-002"
+    component: "Traction Machine"
+    symptom: "Oil leakage or abnormal oil level"
+    alarm: "None"
+    evidence: "Visible leakage or oil level outside OEM range"
+    possible_causes: "Seal deterioration; lubrication issue; component leakage"
+    maintenance_check: "Inspect for leakage and verify level against the model-specific specification"
+    recommended_action: "Qualified maintenance inspection; repair/replace affected component according to OEM procedure"
+    priority: "Medium"
+    root_cause_category: "Lubrication"
+
+  - id: "ELV-003"
+    component: "Brake"
+    symptom: "Abnormal stopping behavior"
+    alarm: "Brake/drive fault if available"
+    evidence: "Stopping behavior differs from normal operation"
+    possible_causes: "Brake wear; contamination; adjustment issue; brake-control fault"
+    maintenance_check: "Inspect brake condition and operating status using the OEM procedure"
+    recommended_action: "Remove elevator from service if safety performance is abnormal and escalate to qualified personnel"
+    priority: "Critical"
+    root_cause_category: "Brake"
+
+  - id: "ELV-004"
+    component: "Brake"
+    symptom: "Brake lining shows excessive wear"
+    alarm: "None or brake-related fault"
+    evidence: "Visible wear compared with OEM limit (<2.5mm)"
+    possible_causes: "Normal deterioration; high operating frequency; contamination"
+    maintenance_check: "Compare lining condition/thickness with the applicable OEM limit"
+    recommended_action: "Replace or service according to the exact OEM/model procedure"
+    priority: "Critical"
+    root_cause_category: "Brake"
+
+  - id: "ELV-005"
+    component: "Door System"
+    symptom: "Doors do not open or close normally"
+    alarm: "Door fault / safety-chain fault if reported"
+    evidence: "Door movement is slow, incomplete, noisy, or inconsistent"
+    possible_causes: "Door operator issue; track/roller wear; obstruction; sensor or interlock issue"
+    maintenance_check: "Observe door operation and inspect accessible door components and safety signals"
+    recommended_action: "Keep the elevator out of normal service if the door safety function is abnormal; qualified inspection required"
+    priority: "Critical"
+    root_cause_category: "Door"
+
+  - id: "ELV-006"
+    component: "Door Interlock"
+    symptom: "Elevator refuses to run with doors apparently closed"
+    alarm: "Safety-chain / door-lock fault"
+    evidence: "Door appears closed but controller does not confirm lock"
+    possible_causes: "Interlock contact issue; alignment problem; wiring/signal issue"
+    maintenance_check: "Qualified technician checks door-lock status and safety-chain diagnostics"
+    recommended_action: "Do not bypass the safety circuit; diagnose using the OEM procedure"
+    priority: "Critical"
+    root_cause_category: "Safety Circuit"
+
+  - id: "ELV-007"
+    component: "Leveling System"
+    symptom: "Car stops above or below floor level"
+    alarm: "Leveling fault if supported"
+    evidence: "Visible floor-level mismatch (>5mm)"
+    possible_causes: "Leveling sensor/target issue; control calibration issue; mechanical movement issue"
+    maintenance_check: "Check leveling behavior and relevant sensors/targets against OEM specifications"
+    recommended_action: "Qualified maintenance inspection and model-specific adjustment"
+    priority: "High"
+    root_cause_category: "Leveling"
+
+  - id: "ELV-008"
+    component: "Controller / Drive"
+    symptom: "Repeated drive trips"
+    alarm: "Drive trip / fault code"
+    evidence: "Fault repeats after reset or during similar operating conditions"
+    possible_causes: "Electrical fault; drive overheating; motor/load issue; feedback fault"
+    maintenance_check: "Review fault history, operating symptoms, temperature and controller diagnostics"
+    recommended_action: "Use OEM fault-code documentation; escalate repeated trips rather than repeatedly resetting"
+    priority: "High"
+    root_cause_category: "Electrical/Drive"
+
+  - id: "ELV-009"
+    component: "Motor / Drive"
+    symptom: "Motor current rises sharply"
+    alarm: "Motor overcurrent / drive trip"
+    evidence: "Step increase in measured current (+50% to +150% above baseline)"
+    possible_causes: "Motor/drive electrical fault; abnormal load; mechanical resistance"
+    maintenance_check: "Correlate current trend with temperature, drive diagnostics and mechanical observations"
+    recommended_action: "Stop normal operation when protection trips repeatedly and perform qualified diagnosis"
+    priority: "Critical"
+    root_cause_category: "Electrical/Mechanical"
+
+  - id: "ELV-010"
+    component: "Motor / Drive"
+    symptom: "Motor current rises with increasing temperature"
+    alarm: "Overtemperature / overcurrent if reported"
+    evidence: "Current and temperature trends rise together"
+    possible_causes: "Cooling problem; electrical loading; motor/drive fault"
+    maintenance_check: "Review thermal trend, cooling condition and drive diagnostics"
+    recommended_action: "Follow OEM thermal/drive troubleshooting procedure"
+    priority: "High"
+    root_cause_category: "Thermal/Electrical"
+
+  - id: "ELV-011"
+    component: "Encoder / Feedback"
+    symptom: "Irregular speed or leveling with feedback-related fault"
+    alarm: "Encoder / feedback fault"
+    evidence: "Fault history plus abnormal speed/position feedback"
+    possible_causes: "Feedback device issue; connection problem; alignment/configuration issue"
+    maintenance_check: "Review controller diagnostics and feedback status using OEM procedure"
+    recommended_action: "Qualified technician inspection; do not alter safety-critical parameters without OEM authorization"
+    priority: "High"
+    root_cause_category: "Feedback"
+
+  - id: "ELV-012"
+    component: "Governor / Safety System"
+    symptom: "Safety-related fault or abnormal governor condition"
+    alarm: "Governor/safety-chain fault if supported"
+    evidence: "Controller records safety-chain interruption or inspection identifies abnormal condition"
+    possible_causes: "Governor/safety device issue; switch/contact issue; mechanical condition"
+    maintenance_check: "Inspection by qualified personnel according to applicable OEM and safety requirements"
+    recommended_action: "Keep elevator out of service until the safety issue is resolved and required tests are completed"
+    priority: "Critical"
+    root_cause_category: "Safety"
+
+  - id: "ELV-013"
+    component: "Machine Room"
+    symptom: "Poor housekeeping, water ingress, or inadequate ventilation"
+    alarm: "None"
+    evidence: "Visible dust/oil/water ingress or ventilation problem (>45°C ambient)"
+    possible_causes: "Environmental condition; housekeeping issue; building envelope/ventilation problem"
+    maintenance_check: "Inspect room condition, lighting, ventilation and signs of leakage"
+    recommended_action: "Correct environmental issue through qualified maintenance/building personnel"
+    priority: "Medium"
+    root_cause_category: "Environment"
+
+  - id: "ELV-014"
+    component: "Hoist Ropes"
+    symptom: "Visible rope wear, contamination, or abnormal tension indication"
+    alarm: "None / traction-related fault if detected"
+    evidence: "Inspection identifies wear, contamination, or uneven condition"
+    possible_causes: "Normal wear; contamination; unequal tension; traction-system condition"
+    maintenance_check: "Inspect rope condition and compare with OEM acceptance criteria"
+    recommended_action: "Qualified rope inspection and service according to the exact OEM procedure"
+    priority: "Critical"
+    root_cause_category: "Traction"
+
+  - id: "ELV-015"
+    component: "Emergency Communication"
+    symptom: "Emergency phone/intercom/alarm does not operate"
+    alarm: "Emergency communication fault if monitored"
+    evidence: "Functional test fails"
+    possible_causes: "Power issue; communication device fault; wiring/network issue"
+    maintenance_check: "Perform functional test and inspect the communication system"
+    recommended_action: "Restore the emergency communication function before normal service where required by local rules"
+    priority: "High"
+    root_cause_category: "Emergency System"

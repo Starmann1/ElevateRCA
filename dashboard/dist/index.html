@@ -1,0 +1,3381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KONE ElevateRCA — Elevator Fault Diagnostics & Work Order Management</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Smart Elevator Simulation Engine -->
+  <script src="elevator_sim.js"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            kone: {
+              50: '#F0F7FB',
+              100: '#E1EFF7',
+              200: '#B8DCED',
+              300: '#8AC3E0',
+              400: '#3D9BCB',
+              500: '#006699',
+              600: '#005580',
+              700: '#004466',
+              800: '#00334D',
+              900: '#002233',
+            }
+          },
+          boxShadow: {
+            'card': '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
+            'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03)',
+            'modal': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      font-family: 'Inter', sans-serif;
+    }
+    .kone-brand-gradient {
+      background: linear-gradient(135deg, #006699 0%, #004466 100%);
+    }
+    .app-card {
+      background-color: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+    }
+    .app-card:hover {
+      border-color: #CBD5E1;
+    }
+    /* Clean scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+    /* Door jam / obstruction shake animation */
+    @keyframes doorJamShake {
+      0%, 100% { transform: translateX(-56%); }
+      20%, 60% { transform: translateX(-58%); }
+      40%, 80% { transform: translateX(-54%); }
+    }
+    .door-jam-shake {
+      animation: doorJamShake 0.3s ease-in-out infinite !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased bg-slate-50 text-slate-900">
+
+  <!-- TOP ENTERPRISE HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="w-full max-w-[1440px] mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3 shrink-0">
+        <div class="w-10 h-10 rounded-xl kone-brand-gradient flex items-center justify-center shadow font-black text-xl text-white tracking-wider">
+          K
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-base tracking-tight text-slate-900 whitespace-nowrap">KONE <span class="text-kone-500 font-black">ElevateRCA</span></span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-kone-50 text-kone-600 border border-kone-200 whitespace-nowrap">
+              EcoDisc PMSM
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-medium whitespace-nowrap">Autonomous Fault Isolation, Bayesian RCA & SOP Dispatch</p>
+        </div>
+      </div>
+
+      <!-- Center & Action Tools -->
+        <!-- Quick Telemetry & Incident Selector Dropdown -->
+        <div class="relative flex items-center">
+          <select id="headerDoorSampleSelect" onchange="loadAndAnalyzeDoorSample(this.value)" class="text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-kone-500 cursor-pointer shadow-xs max-w-[280px] truncate">
+            <option value="">-- Quick Load Incident / Telemetry --</option>
+          </select>
+        </div>
+
+        <button onclick="toggleClosedLoopCaseModal(true)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap shrink-0 cursor-pointer" title="Manage closed-loop diagnostic state machine iterations">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-kone-500"></i>
+          <span>Closed-Loop Case</span>
+        </button>
+
+        <!-- Direct File Upload Input (Hidden) -->
+        <input type="file" id="directFileInput" accept=".json" class="hidden" onchange="handleDirectFileUpload(event)" />
+        
+        <button onclick="document.getElementById('directFileInput').click()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap shrink-0 cursor-pointer">
+          <i data-lucide="upload" class="w-3.5 h-3.5 text-kone-500"></i>
+          <span>Upload File (.json)</span>
+        </button>
+
+        <button id="customJsonBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap shrink-0 cursor-pointer">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5 text-kone-500"></i>
+          <span>Paste Payload</span>
+        </button>
+
+        <button onclick="toggleErrorMatrixModal(true)" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap shrink-0 cursor-pointer">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+          <span>Error Table Matrix</span>
+        </button>
+
+        <div class="h-6 w-px bg-slate-200 mx-1 shrink-0"></div>
+        
+        <!-- Live Real-Time Clock Badge -->
+        <div class="flex items-center space-x-2.5 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200 shrink-0">
+          <div class="text-right leading-tight">
+            <div class="font-mono text-xs font-bold text-slate-900 whitespace-nowrap" id="clockUtc">--:--:-- UTC</div>
+            <div class="font-mono text-[10px] text-slate-500 font-medium whitespace-nowrap" id="clockDate">2026-09-24</div>
+          </div>
+          <div class="flex items-center space-x-1 pl-2 border-l border-slate-200">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="text-[10px] font-extrabold text-emerald-700 tracking-wider">LIVE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOP MODULE NAVIGATION BAR -->
+  <div class="bg-white border-b border-slate-200 sticky top-[57px] z-30 shadow-2xs">
+    <div class="w-full max-w-[1440px] mx-auto px-4 sm:px-6 flex items-center justify-between">
+      <div class="flex space-x-1">
+        <button id="navModuleDiag" onclick="switchMainModule('diagnostic')" class="py-3 px-4 text-xs font-bold text-kone-600 border-b-2 border-kone-500 bg-white flex items-center space-x-2 transition cursor-pointer">
+          <i data-lucide="cpu" class="w-4 h-4"></i>
+          <span>Diagnostic Intelligence & RCA</span>
+        </button>
+        <button id="navModuleSim" onclick="switchMainModule('simulation')" class="py-3 px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:bg-slate-50 flex items-center space-x-2 transition cursor-pointer">
+          <i data-lucide="chevrons-up-down" class="w-4 h-4 text-kone-500"></i>
+          <span>Smart Elevator Live Simulation</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-300">LIVE SIM</span>
+        </button>
+      </div>
+
+      <div class="hidden sm:flex items-center space-x-3 text-xs text-slate-500">
+        <span class="flex items-center space-x-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="font-medium">Virtual Sensor Array: <strong class="text-slate-700 font-mono">5 Optical Gates (G, 1, 2, 3, 4)</strong></span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DIAGNOSTIC & SIMULATION WORKSPACE -->
+  <main class="w-full max-w-[1440px] mx-auto px-4 sm:px-6 py-5 flex-1 space-y-5">
+
+    <!-- DIAGNOSTIC INTELLIGENCE WORKSPACE VIEW -->
+    <div id="diagnosticWorkspaceView" class="space-y-5">
+
+      <!-- QUICK LAUNCH SIMULATION BANNER -->
+      <div class="app-card rounded-xl p-3.5 bg-gradient-to-r from-kone-600 via-kone-500 to-sky-700 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold shrink-0">
+            <i data-lucide="door-closed" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="font-bold text-xs flex items-center space-x-2">
+              <span>All KONE Door Subsystem Problems & Autonomous Fault Isolation Active</span>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-400 text-slate-900">DOOR ISOLATION READY</span>
+            </div>
+            <div class="text-[11px] text-white/80">Select any Door Problem from the dropdown above to run Bayesian ranking, OEM SOP checklists & live door physics simulation</div>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+          <button onclick="simulateCurrentFaultInEngine()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-slate-900 transition shadow-xs flex items-center space-x-1.5 shrink-0 cursor-pointer">
+            <i data-lucide="play" class="w-3.5 h-3.5 fill-slate-900"></i>
+            <span>Simulate Door Fault in Engine</span>
+          </button>
+          <button onclick="switchMainModule('simulation')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kone-700 hover:bg-kone-50 transition shadow-xs flex items-center space-x-1.5 shrink-0 cursor-pointer">
+            <span>Open Simulation</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+    <!-- KPI METRIC CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Card 1: Asset ID & Location -->
+      <div class="app-card rounded-xl p-4 flex items-center space-x-3.5 border-l-4 border-l-kone-500 min-h-[76px]">
+        <div class="w-10 h-10 rounded-lg bg-kone-50 border border-kone-200 flex items-center justify-center text-kone-600 shrink-0">
+          <i data-lucide="box" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Elevator Asset</div>
+          <div class="font-bold text-sm text-slate-900 font-mono truncate" id="stripElevatorId">KONE-MONO-501</div>
+          <div class="text-[11px] text-slate-600 font-medium truncate" id="stripElevatorModel">North Tower • Car 1</div>
+        </div>
+      </div>
+
+      <!-- Card 2: Primary Root Trigger -->
+      <div class="app-card rounded-xl p-4 flex items-center space-x-3.5 border-l-4 border-l-rose-500 min-h-[76px]">
+        <div class="w-10 h-10 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Primary Root Trigger</div>
+          <div class="font-bold text-sm text-rose-700 font-mono truncate" id="stripPrimaryAlarm">motor_overcurrent</div>
+          <div class="text-[10px] text-rose-600 font-bold uppercase" id="stripSeverity">CRITICAL SEVERITY</div>
+        </div>
+      </div>
+
+      <!-- Card 3: Top Root Cause Winner (Clickable for Full Guidance & Report) -->
+      <div onclick="openRootCauseGuidanceModal()" class="app-card rounded-xl p-4 flex items-center space-x-3.5 border-l-4 border-l-emerald-500 min-h-[76px] cursor-pointer hover:border-emerald-400 hover:shadow-md transition group" title="Click to display full resolution guidance and complete engineering report">
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0 group-hover:bg-emerald-100 group-hover:scale-105 transition">
+          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Probable Root Cause</span>
+            <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 group-hover:bg-emerald-100 transition flex items-center space-x-0.5">
+              <span>View Guide</span>
+              <i data-lucide="chevron-right" class="w-2.5 h-2.5"></i>
+            </span>
+          </div>
+          <div class="font-bold text-sm text-slate-900 truncate group-hover:text-emerald-700 transition" id="stripTopWinner">IGBT Inverter Fault</div>
+          <div class="text-[10px] text-emerald-700 font-bold" id="stripConfidence">97% Calibrated High</div>
+        </div>
+      </div>
+
+      <!-- Card 4: Action Status -->
+      <div class="app-card rounded-xl p-4 flex items-center space-x-3.5 border-l-4 border-l-amber-500 min-h-[76px]">
+        <div class="w-10 h-10 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+          <i data-lucide="wrench" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Corrective Action</div>
+          <div class="font-bold text-xs text-amber-800 truncate" id="stripActionName">INSPECT_AND_TEST_IGBT</div>
+          <div class="text-[10px] text-slate-600 font-medium truncate" id="stripActionStatus">Awaiting Technician Authorization</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTONOMOUS FAULT ISOLATION: EWMA & CUSUM ANOMALY TRACKING STRIP -->
+    <div id="ewmaCusumPanel" class="app-card rounded-xl p-4 bg-gradient-to-r from-slate-900 via-slate-800 to-kone-900 text-white shadow-md border border-slate-700">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-kone-500/30 border border-kone-400/40 flex items-center justify-center text-kone-300 shrink-0">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-black uppercase tracking-wider text-white">Autonomous Fault Isolation: EWMA & CUSUM Drift Tracking</span>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" id="ewmaCusumStatusBadge">ACTIVE MONITORING</span>
+            </div>
+            <p class="text-[11px] text-slate-300 mt-0.5">
+              Multi-scale statistical anomaly detection: Exponentially Weighted Moving Average (&alpha;=0.25) & Two-Sided Tabular CUSUM (k=0.5&sigma;, h=4.0&sigma;).
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3 shrink-0">
+          <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-right">
+            <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Max EWMA Z-Score</div>
+            <div class="text-sm font-black font-mono text-emerald-400" id="ewmaMaxZScore">0.00 &sigma;</div>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-right">
+            <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">CUSUM Drift Status</div>
+            <div class="text-sm font-black font-mono text-emerald-400" id="cusumDriftFlag">IN CONTROL</div>
+          </div>
+          <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-right">
+            <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Signal Quality Gate</div>
+            <div class="text-sm font-black font-mono text-emerald-400" id="sensorQualitySummary">100% RELIABLE</div>
+          </div>
+        </div>
+      </div>
+      <div id="ewmaCusumSignalList" class="mt-3 pt-3 border-t border-slate-700/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
+        <!-- Dynamically rendered per-signal EWMA z-scores and CUSUM status -->
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN DIAGNOSTIC GRID (SWAPPED: DIAGNOSIS ON LEFT, SOP & RESOLUTION ON RIGHT) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- LEFT COLUMN: FAULT TREES, BAYESIAN RANKING & SYNTHESIS (5 COLS) -->
+      <div class="lg:col-span-5 space-y-5">
+
+        <!-- STAGE 1: FAULT TREE & BAYESIAN POSTERIOR RANKING -->
+        <div class="app-card rounded-xl p-4 shadow-xs border border-slate-200">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-kone-50 text-kone-600 font-bold text-xs flex items-center justify-center border border-kone-200">1</span>
+              <h3 class="font-bold text-xs text-slate-900 uppercase tracking-wide">Subsystem Fault Tree & Bayesian Ranking</h3>
+            </div>
+            <div class="flex items-center space-x-3 text-xs">
+              <span class="flex items-center space-x-1.5 font-bold text-emerald-700">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span>Active Candidate</span>
+              </span>
+              <span class="flex items-center space-x-1.5 font-bold text-rose-700">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span>Eliminated</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Competing Hypotheses Ranking List with Q1-Q4 Discipline -->
+          <div class="space-y-3" id="hypothesesRankingList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- STAGE 2: RCA SYNTHESIS & DUAL CONFIDENCE -->
+        <div class="app-card rounded-xl p-4 border border-kone-200 bg-gradient-to-br from-white via-kone-50/40 to-sky-50/20 shadow-xs">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-200 pb-2.5">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-kone-500 text-white font-bold text-xs flex items-center justify-center shadow-xs">2</span>
+              <h3 class="font-bold text-xs text-slate-900 uppercase tracking-wide">RCA Synthesis & Dual Confidence</h3>
+            </div>
+            <div class="flex items-center space-x-4">
+              <div class="text-right">
+                <span class="text-[10px] font-bold text-slate-500 block uppercase">Root Cause Conf.</span>
+                <span class="text-xs font-bold text-emerald-700 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block" id="dualRootConf">97% (HIGH)</span>
+              </div>
+              <div class="h-6 w-px bg-slate-300"></div>
+              <div class="text-right">
+                <span class="text-[10px] font-bold text-slate-500 block uppercase">Action Conf.</span>
+                <span class="text-xs font-bold text-kone-700 font-mono bg-kone-50 px-2 py-0.5 rounded border border-kone-200 inline-block" id="dualActionConf">87% (HIGH)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Causal Narrative Box -->
+          <div class="p-4 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 leading-relaxed font-medium shadow-xs" id="causalNarrativeText">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: TECHNICIAN SOP, RETURN-TO-SERVICE SIMULATOR & REPORTS DOSSIER (7 COLS) -->
+      <div class="lg:col-span-7 space-y-5">
+
+        <!-- DUAL VIEW TABS (TECHNICIAN WORK ORDER vs BUILDING OPERATIONS REPORT vs INVESTIGATION DOSSIER) -->
+        <div class="app-card rounded-xl overflow-hidden shadow-xs border border-slate-200">
+          
+          <!-- View Tab Headers -->
+          <div class="flex border-b border-slate-200 bg-slate-50">
+            <button id="tabTechBtn" onclick="switchView('technician')" class="flex-1 py-3.5 px-4 text-xs font-bold text-kone-600 border-b-2 border-kone-500 bg-white flex items-center justify-center space-x-2 transition cursor-pointer">
+              <i data-lucide="wrench" class="w-4 h-4"></i>
+              <span>Technician SOP (<span id="sopCounter">0/5 Done</span>)</span>
+            </button>
+            <button id="tabDocBtn" onclick="switchView('document')" class="flex-1 py-3.5 px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:bg-slate-100 flex items-center justify-center space-x-2 transition cursor-pointer">
+              <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i>
+              <span>Investigation Report Dossier</span>
+            </button>
+            <button id="tabMgrBtn" onclick="switchView('manager')" class="flex-1 py-3.5 px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:bg-slate-100 flex items-center justify-center space-x-2 transition cursor-pointer">
+              <i data-lucide="building-2" class="w-4 h-4 text-slate-600"></i>
+              <span>Facility Operations Report</span>
+            </button>
+          </div>
+
+          <!-- TECHNICIAN VIEW CONTENT -->
+          <div id="technicianViewContent" class="p-5 space-y-4">
+            <div class="flex items-start justify-between">
+              <div>
+                <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Approved Corrective Procedure</h4>
+                <div class="text-sm font-bold text-slate-900 font-mono mt-0.5" id="techActionName">INSPECT_AND_TEST_IGBT</div>
+              </div>
+              <div class="flex flex-col items-end space-y-1">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200" id="techSeverityBadge">HIGH SEVERITY</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200" id="techVerificationStageBadge">SINGLE-STAGE RTS</span>
+              </div>
+            </div>
+
+
+            <!-- Specific OEM steps with Checkboxes -->
+            <div class="space-y-2 text-xs">
+              <div class="font-bold text-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-1.5">
+                  <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-600"></i>
+                  <span>Mandatory Investigation & Verification Steps:</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-normal">Click step to mark completed</span>
+              </div>
+              <div class="space-y-2 text-slate-700 font-medium" id="techStepsList">
+                <!-- Populated dynamically with interactive checkable items -->
+              </div>
+            </div>
+
+            <!-- Prohibited Actions (DO NOT DO) -->
+            <div class="p-3.5 rounded-xl bg-rose-50/90 border border-rose-200 text-xs">
+              <div class="font-bold text-rose-800 flex items-center space-x-1.5 mb-2">
+                <i data-lucide="octagon-x" class="w-4 h-4 text-rose-600"></i>
+                <span class="tracking-wide">PROHIBITED ACTIONS (DO NOT DO)</span>
+              </div>
+              <ul class="space-y-1.5 pl-4 list-disc text-rose-900 font-medium" id="techDoNotDoList">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+            <!-- Return to Service Test Option (Interactive Clearance Simulator) -->
+            <div id="techRtsPanel" class="p-4 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300 text-xs space-y-2.5 shadow-2xs">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 font-bold text-emerald-900">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+                  <span class="text-sm">Return-to-Service Test Simulation</span>
+                </div>
+                <span id="techRtsBadge" class="text-[10px] font-bold uppercase bg-white text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded shadow-2xs">SOP IN PROGRESS</span>
+              </div>
+              <p class="text-[11px] text-slate-600 font-medium leading-relaxed">Once mandatory OEM inspection steps are performed, execute the automated Return-to-Service test simulation to verify 0 active faults, clear root cause rankings to 0, and confirm 100% normal system operation.</p>
+              <button id="btnRunRtsTest" onclick="runReturnToServiceTestSimulation()" class="w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer">
+                <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                <span>🧪 Run Return-to-Service Test Simulation</span>
+              </button>
+            </div>
+            
+            <div id="rtsCompletionBanner" class="hidden p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-xs shadow-xs">
+              <!-- Dynamically populated on RTS test completion -->
+            </div>
+          </div>
+
+          <!-- DOCUMENT REPORT VIEW CONTENT -->
+          <div id="documentViewContent" class="p-5 space-y-4 hidden">
+            <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+              <span class="font-bold text-slate-700 flex items-center space-x-1.5">
+                <i data-lucide="printer" class="w-4 h-4 text-kone-600"></i>
+                <span>Official Engineering Investigation Dossier</span>
+              </span>
+              <div class="flex items-center space-x-2">
+                <button onclick="printReportDocument()" class="px-3 py-1 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1 shadow-xs cursor-pointer">
+                  <i data-lucide="printer" class="w-3.5 h-3.5 text-kone-600"></i>
+                  <span>Print Report</span>
+                </button>
+                <button onclick="copyReportMarkdown()" class="px-3 py-1 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition flex items-center space-x-1 shadow-xs cursor-pointer">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span>Copy Report</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Formatted Document Paper -->
+            <div id="reportDocumentPaper" class="p-6 bg-white border border-slate-200 rounded-xl font-sans text-xs text-slate-800 space-y-4 shadow-xs leading-relaxed max-h-[600px] overflow-y-auto">
+              <!-- Dynamically rendered markdown content -->
+            </div>
+          </div>
+
+          <!-- BUILDING OPERATIONS VIEW CONTENT -->
+          <div id="managerViewContent" class="p-5 space-y-4 hidden">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed font-medium" id="mgrSummaryText">
+              <!-- Populated dynamically -->
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs">
+                <span class="text-slate-500 block text-[11px] font-bold uppercase">Estimated Downtime Forecast</span>
+                <span class="font-bold text-slate-900 mt-1 block text-sm" id="mgrDowntimeText">2 to 6 hours</span>
+              </div>
+              <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 shadow-xs">
+                <span class="text-emerald-700 block text-[11px] font-bold uppercase">Hardware Safety Status</span>
+                <span class="font-bold text-emerald-900 mt-1 block text-sm" id="mgrSafetyText">Safely parked. Zero risk.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WORK ORDER AUTHORIZATION & AUDIT SIGN-OFF PORTAL -->
+        <div class="app-card rounded-xl p-5 border-t-4 border-t-kone-500 shadow-xs bg-gradient-to-r from-kone-50/40 via-white to-white">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h4 class="font-bold text-xs uppercase tracking-wider text-slate-900 flex items-center space-x-1.5">
+                <i data-lucide="user-check" class="w-4 h-4 text-kone-600"></i>
+                <span>Technician Sign-Off & Work Order Execution</span>
+              </h4>
+              <p class="text-xs text-slate-600 mt-0.5 font-medium">
+                Verify diagnostic findings, execute OEM steps, and commit maintenance action to audit ledger.
+              </p>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <button onclick="submitReview('ACCEPTED')" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center space-x-1.5 cursor-pointer">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Authorize & Dispatch</span>
+              </button>
+              <button onclick="submitReview('EDITED')" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-xs cursor-pointer">
+                <i data-lucide="edit" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Add Note</span>
+              </button>
+              <button onclick="submitReview('REJECTED')" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 transition flex items-center space-x-1.5 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5 text-rose-600"></i>
+                <span>Reject</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Audit log preview -->
+          <div id="auditLogPreview" class="mt-4 pt-3 border-t border-slate-200 text-xs hidden">
+            <div class="font-bold text-slate-700 mb-1 flex items-center space-x-1.5">
+              <i data-lucide="history" class="w-3.5 h-3.5 text-slate-500"></i>
+              <span>Committed Maintenance Audit Log:</span>
+            </div>
+            <div id="auditLogList" class="space-y-1.5 font-mono text-[11px] text-slate-600"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <!-- /DIAGNOSTIC INTELLIGENCE WORKSPACE VIEW -->
+
+  <!-- SMART ELEVATOR LIVE SIMULATION VIEW CONTAINER (DEDICATED FULL VIEW) -->
+  <div id="elevatorSimulationView" class="space-y-5 hidden">
+      
+      <!-- TOP DEDICATED NAVIGATION & CONTROLLER BAR -->
+      <div class="app-card rounded-xl p-3 bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <button onclick="switchMainModule('diagnostics')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-2xs cursor-pointer">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>⬅ Back to Diagnostic & RCA Workspace</span>
+          </button>
+          <span class="text-xs text-slate-400">|</span>
+          <span class="text-xs font-bold text-slate-700 font-mono">Dedicated Live Simulation Page</span>
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+          <button onclick="simulateCurrentFaultInEngine()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white shadow-xs transition flex items-center space-x-1.5 cursor-pointer">
+            <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
+            <span>⚡ Replay Telemetry Fault Animation</span>
+          </button>
+          <button onclick="resetElevatorSimulation()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-2xs cursor-pointer">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Reset Normal</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 10 SYNTHETIC LIVE TELEMETRY SENSOR PARAMETERS (EXACT MATCH TO SPECIFICATION) -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 font-mono">LIVE TELEMETRY SENSOR PARAMETERS (UPDATED EVERY 1S)</h3>
+          </div>
+          <div class="text-xs font-mono font-bold text-kone-700 bg-kone-50 border border-kone-200 px-3 py-1 rounded-full shadow-2xs flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>10 Synthetic Sensors Active</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          <!-- Sensor 1: Door Position -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Door Position</span>
+              <span class="font-bold text-slate-400 font-mono text-xs">%</span>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simDoorPosVal">0%</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>0% Closed • 100% Open</span>
+              <span id="simDoorPosBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 2: Door Speed -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Door Speed</span>
+              <i data-lucide="gauge" class="w-3.5 h-3.5 text-slate-400"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simDoorSpeedVal">0.40 m/s</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Normal: 0.35 - 0.50 m/s</span>
+              <span id="simDoorSpeedBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 3: Motor Current -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Motor Current</span>
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simMotorCurrVal">2.0 A</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Normal: 1.5 - 2.5 A</span>
+              <span id="simMotorCurrBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 4: Opening Time -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Opening Time</span>
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simOpenTimeVal">1.9 s</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Normal: 1.5 - 2.2 s</span>
+              <span id="simOpenTimeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 5: Closing Time -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Closing Time</span>
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simCloseTimeVal">1.9 s</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Normal: 1.5 - 2.3 s</span>
+              <span id="simCloseTimeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 6: Vibration -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Vibration</span>
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-600"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simVibVal">0.8 mm/s</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Normal: 0.5 - 1.5 mm/s</span>
+              <span id="simVibBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 7: Photo-eye Status -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Photo-eye Status</span>
+              <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simPhotoEyeVal">CLEAR</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>IR Light Beam Safety</span>
+              <span id="simPhotoEyeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 8: Reopen Count -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Reopen Count</span>
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-400"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simReopenVal">0</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Safety Trigger Events</span>
+              <span id="simReopenBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 9: Motor Temperature -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Motor Temperature</span>
+              <i data-lucide="flame" class="w-3.5 h-3.5 text-rose-500"></i>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simMotorTempVal">42.0 °C</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Normal: 35 - 55 °C</span>
+              <span id="simMotorTempBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+
+          <!-- Sensor 10: Door Cycle Count -->
+          <div class="app-card rounded-xl p-3.5 space-y-2 border border-slate-200 bg-white shadow-2xs hover:border-slate-300 transition">
+            <div class="flex items-center justify-between text-slate-600">
+              <span class="text-xs font-bold text-slate-700">Door Cycle Count</span>
+              <span class="font-bold text-slate-400 font-mono text-xs">#</span>
+            </div>
+            <div class="font-black text-2xl font-mono text-slate-900" id="simCycleCountVal">1,435</div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+              <span>Total Lifetime Cycles</span>
+              <span id="simCycleCountBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">OK</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN SIMULATION INTERFACE (HOISTWAY SHAFT + CONTROL PANEL) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- LEFT COLUMN: ELEVATOR HOISTWAY SHAFT 2D VISUALIZER (6 COLS) -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="app-card rounded-xl p-4 bg-slate-900 text-white shadow-card border border-slate-800">
+            
+            <!-- Shaft Header & Machine Room Sheave -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-kone-400">
+                  <i data-lucide="cpu" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-xs uppercase tracking-wide text-slate-200">KONE EcoDisc MX10 Hoistway</h3>
+                  <p class="text-[10px] text-slate-400 font-mono">PMSM Machine-Room-Less (MRL) Top Sheave</p>
+                </div>
+              </div>
+
+              <!-- Rotating Sheave Visualizer -->
+              <div class="flex items-center space-x-2 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
+                <span class="text-[10px] font-mono text-slate-400 uppercase">Traction Motor:</span>
+                <div id="simEcoDiscSheave" class="w-5 h-5 rounded-full border-2 border-kone-400 border-dashed flex items-center justify-center transition-transform">
+                  <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vertical Hoistway Shaft -->
+            <div class="relative w-full h-[470px] bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-inner flex">
+              
+              <!-- Left Guide Rail & Optical Level Sensor Array -->
+              <div class="w-14 h-full border-r border-slate-800/80 flex flex-col justify-between py-5 px-2 relative z-10 bg-slate-900/60">
+                
+                <!-- Floor 4 Sensor -->
+                <div class="flex items-center space-x-1.5">
+                  <span id="simSensorLed_4" class="w-2.5 h-2.5 rounded-full bg-slate-300 border border-slate-400 transition-all duration-300"></span>
+                  <span class="font-mono text-[10px] font-extrabold text-slate-300">4F</span>
+                </div>
+
+                <!-- Floor 3 Sensor -->
+                <div class="flex items-center space-x-1.5">
+                  <span id="simSensorLed_3" class="w-2.5 h-2.5 rounded-full bg-slate-300 border border-slate-400 transition-all duration-300"></span>
+                  <span class="font-mono text-[10px] font-extrabold text-slate-300">3F</span>
+                </div>
+
+                <!-- Floor 2 Sensor -->
+                <div class="flex items-center space-x-1.5">
+                  <span id="simSensorLed_2" class="w-2.5 h-2.5 rounded-full bg-slate-300 border border-slate-400 transition-all duration-300"></span>
+                  <span class="font-mono text-[10px] font-extrabold text-slate-300">2F</span>
+                </div>
+
+                <!-- Floor 1 Sensor -->
+                <div class="flex items-center space-x-1.5">
+                  <span id="simSensorLed_1" class="w-2.5 h-2.5 rounded-full bg-slate-300 border border-slate-400 transition-all duration-300"></span>
+                  <span class="font-mono text-[10px] font-extrabold text-slate-300">1F</span>
+                </div>
+
+                <!-- Ground Sensor -->
+                <div class="flex items-center space-x-1.5">
+                  <span id="simSensorLed_0" class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-emerald-300 transition-all duration-300"></span>
+                  <span class="font-mono text-[10px] font-extrabold text-emerald-400">G</span>
+                </div>
+              </div>
+
+              <!-- Central Shaft Area with Floor Lines & Traveling Cabin -->
+              <div class="flex-1 h-full relative px-4">
+                
+                <!-- 5 Horizontal Floor Landing Lines & Optical Laser Beams -->
+                <div class="absolute inset-0 flex flex-col justify-between py-6 pointer-events-none">
+                  
+                  <!-- 4F Line -->
+                  <div class="relative w-full border-b border-slate-800/60 flex items-center justify-between">
+                    <span class="text-[9px] font-mono font-bold text-slate-400 pl-2">FLOOR 4 (TOP LANDING)</span>
+                    <div id="simSensorBeam_4" class="absolute inset-x-0 h-0.5 bg-emerald-400 opacity-0 transition-opacity duration-300 shadow-[0_0_8px_#34d399]"></div>
+                  </div>
+
+                  <!-- 3F Line -->
+                  <div class="relative w-full border-b border-slate-800/60 flex items-center justify-between">
+                    <span class="text-[9px] font-mono font-bold text-slate-400 pl-2">FLOOR 3</span>
+                    <div id="simSensorBeam_3" class="absolute inset-x-0 h-0.5 bg-emerald-400 opacity-0 transition-opacity duration-300 shadow-[0_0_8px_#34d399]"></div>
+                  </div>
+
+                  <!-- 2F Line -->
+                  <div class="relative w-full border-b border-slate-800/60 flex items-center justify-between">
+                    <span class="text-[9px] font-mono font-bold text-slate-400 pl-2">FLOOR 2</span>
+                    <div id="simSensorBeam_2" class="absolute inset-x-0 h-0.5 bg-emerald-400 opacity-0 transition-opacity duration-300 shadow-[0_0_8px_#34d399]"></div>
+                  </div>
+
+                  <!-- 1F Line -->
+                  <div class="relative w-full border-b border-slate-800/60 flex items-center justify-between">
+                    <span class="text-[9px] font-mono font-bold text-slate-400 pl-2">FLOOR 1</span>
+                    <div id="simSensorBeam_1" class="absolute inset-x-0 h-0.5 bg-emerald-400 opacity-0 transition-opacity duration-300 shadow-[0_0_8px_#34d399]"></div>
+                  </div>
+
+                  <!-- Ground Line -->
+                  <div class="relative w-full border-b border-slate-800/60 flex items-center justify-between">
+                    <span class="text-[9px] font-mono font-bold text-emerald-400 pl-2">GROUND FLOOR (LOBBY)</span>
+                    <div id="simSensorBeam_0" class="absolute inset-x-0 h-0.5 bg-emerald-400 opacity-0 transition-opacity duration-300 shadow-[0_0_8px_#34d399]"></div>
+                  </div>
+                </div>
+
+                <!-- Suspension Hoist Steel Ropes (Connected to Cabin Roof) -->
+                <div class="absolute left-1/2 -translate-x-1/2 top-0 w-1 flex justify-center pointer-events-none z-10" id="simHoistRope" style="height: 85%;">
+                  <div class="w-0.5 h-full bg-gradient-to-b from-slate-400 via-slate-300 to-slate-400 shadow-sm"></div>
+                </div>
+
+                <!-- TRAVELING ELEVATOR CABIN (Modern Stainless Steel & Luxury Glass Cabin) -->
+                <div id="simCabin" class="absolute left-1/2 -translate-x-1/2 w-52 h-24 rounded-lg bg-gradient-to-b from-slate-200 via-slate-100 to-slate-300 border-2 border-slate-400 shadow-2xl z-20 transition-none flex flex-col overflow-hidden" style="bottom: 3.0%;">
+                  
+                  <!-- Top Cabin Operating Header (COP Mini Display) -->
+                  <div class="h-6 bg-slate-900 border-b border-slate-400 flex items-center justify-between px-2.5 text-[11px] shadow-xs">
+                    <div class="flex items-center space-x-1.5">
+                      <span class="font-extrabold font-mono text-emerald-400 text-xs tracking-wider" id="simCarFloorDisplay">G</span>
+                      <span id="simCarArrow" class="text-[10px] text-slate-400">■</span>
+                    </div>
+                    <span class="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-widest">KONE MonoSpace 500</span>
+                  </div>
+
+                  <!-- Cabin Interior & Dual Center-Opening Telescopic Stainless Steel Doors -->
+                  <div class="flex-1 relative bg-gradient-to-b from-amber-50 via-slate-100 to-slate-200 p-1 flex items-center justify-center overflow-hidden border-t border-slate-300">
+                    
+                    <!-- Passenger Silhouette / Warm Interior Light -->
+                    <div class="text-[11px] text-slate-500 font-semibold flex items-center space-x-1.5 select-none">
+                      <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
+                      <span>Car 1 (Passenger)</span>
+                    </div>
+
+                    <!-- Left Sliding Door (Brushed Stainless Steel with vertical rib & handle) -->
+                    <div id="simDoorLeft" class="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-slate-300 via-slate-100 to-slate-300 border-r border-slate-400 transition-transform duration-500 ease-out shadow-md z-10 flex items-center justify-end pr-1.5">
+                      <div class="w-1 h-10 rounded-full bg-slate-400/80 shadow-xs"></div>
+                      <div class="absolute left-0 inset-y-0 w-0.5 bg-emerald-500/60"></div>
+                    </div>
+
+                    <!-- Right Sliding Door (Brushed Stainless Steel with vertical rib & handle) -->
+                    <div id="simDoorRight" class="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-slate-300 via-slate-100 to-slate-300 border-l border-slate-400 transition-transform duration-500 ease-out shadow-md z-10 flex items-center justify-start pl-1.5">
+                      <div class="w-1 h-10 rounded-full bg-slate-400/80 shadow-xs"></div>
+                      <div class="absolute right-0 inset-y-0 w-0.5 bg-emerald-500/60"></div>
+                    </div>
+                  </div>
+
+                  <!-- Optical Interrupter Flag on Left -->
+                  <div class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2.5 h-4 bg-emerald-400 rounded-xs shadow-[0_0_8px_#34d399] z-30"></div>
+                </div>
+
+                <!-- Bottom Pit Buffers -->
+                <div class="absolute bottom-0 inset-x-4 h-2 border-t border-slate-800 flex justify-around">
+                  <div class="w-3 h-1.5 bg-slate-700 rounded-t"></div>
+                  <div class="w-3 h-1.5 bg-slate-700 rounded-t"></div>
+                </div>
+              </div>
+
+              <!-- Right Guide Rail & Counterweight System -->
+              <div class="w-12 h-full border-l border-slate-800/80 flex flex-col justify-end p-1.5 relative bg-slate-900/40">
+                
+                <!-- Suspension Rope for Counterweight -->
+                <div class="absolute left-1/2 -translate-x-1/2 top-0 w-0.5 bg-slate-600 pointer-events-none" id="simCwRope" style="height: 15%;"></div>
+
+                <!-- Counterweight Block (Inversely proportional kinematic motion) -->
+                <div id="simCounterweight" class="absolute left-1/2 -translate-x-1/2 w-7 h-14 rounded bg-gradient-to-b from-slate-700 to-slate-900 border border-slate-600 shadow-md flex flex-col justify-center items-center text-[8px] font-mono text-slate-400 transition-none z-10" style="bottom: 81%;">
+                  <span class="font-bold">CW</span>
+                  <div class="w-4 h-0.5 bg-slate-600 my-0.5"></div>
+                  <span>50%</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Bottom Hoistway Status -->
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-800">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>ASME A17.1 Leveling Precision: <strong class="text-white font-mono">±0.5 mm</strong></span>
+              </div>
+              <div class="font-mono text-[10px] text-slate-400">
+                Speed: <strong class="text-slate-200">1.6 m/s</strong> (100% Rated)
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CAR OPERATING PANEL (COP), CONTROLS & EVENT LOG (6 COLS) -->
+        <div class="lg:col-span-6 space-y-4">
+
+          <!-- 1. KONE CAR OPERATING PANEL (COP) -->
+          <div class="app-card rounded-xl p-5 bg-white border border-slate-200 shadow-card">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-kone-50 border border-kone-200 flex items-center justify-center text-kone-600 font-bold">
+                  <i data-lucide="hand-metal" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-xs uppercase tracking-wide text-slate-900">Elevator Call Panel (COP)</h3>
+                  <p class="text-[11px] text-slate-500 font-medium">Select destination floor or manual door actions</p>
+                </div>
+              </div>
+
+              <!-- Door Operation Controls -->
+              <div class="flex items-center space-x-1.5">
+                <button onclick="openElevatorDoors()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition shadow-2xs flex items-center space-x-1" title="Open Cabin Sliding Doors">
+                  <i data-lucide="panel-left-open" class="w-3.5 h-3.5 text-kone-600"></i>
+                  <span>&lt; | &gt; Open</span>
+                </button>
+                <button onclick="closeElevatorDoors()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition shadow-2xs flex items-center space-x-1" title="Close Cabin Sliding Doors">
+                  <i data-lucide="panel-left-close" class="w-3.5 h-3.5 text-slate-600"></i>
+                  <span>&gt; | &lt; Close</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Floor Call Buttons Grid: [4], [3], [2], [1], [G] -->
+            <div class="grid grid-cols-5 gap-2.5 mb-4">
+              <!-- Floor 4 -->
+              <button id="simFloorBtn_4" onclick="callElevatorFloor(4)" class="p-3 rounded-xl border border-slate-300 bg-white hover:bg-kone-50 hover:border-kone-400 text-slate-700 font-bold text-sm shadow-xs transition flex flex-col items-center justify-center group cursor-pointer">
+                <span class="text-base font-black group-hover:text-kone-600">4</span>
+                <span class="text-[10px] text-slate-400 font-medium mt-0.5">4th Fl</span>
+              </button>
+
+              <!-- Floor 3 -->
+              <button id="simFloorBtn_3" onclick="callElevatorFloor(3)" class="p-3 rounded-xl border border-slate-300 bg-white hover:bg-kone-50 hover:border-kone-400 text-slate-700 font-bold text-sm shadow-xs transition flex flex-col items-center justify-center group cursor-pointer">
+                <span class="text-base font-black group-hover:text-kone-600">3</span>
+                <span class="text-[10px] text-slate-400 font-medium mt-0.5">3rd Fl</span>
+              </button>
+
+              <!-- Floor 2 -->
+              <button id="simFloorBtn_2" onclick="callElevatorFloor(2)" class="p-3 rounded-xl border border-slate-300 bg-white hover:bg-kone-50 hover:border-kone-400 text-slate-700 font-bold text-sm shadow-xs transition flex flex-col items-center justify-center group cursor-pointer">
+                <span class="text-base font-black group-hover:text-kone-600">2</span>
+                <span class="text-[10px] text-slate-400 font-medium mt-0.5">2nd Fl</span>
+              </button>
+
+              <!-- Floor 1 -->
+              <button id="simFloorBtn_1" onclick="callElevatorFloor(1)" class="p-3 rounded-xl border border-slate-300 bg-white hover:bg-kone-50 hover:border-kone-400 text-slate-700 font-bold text-sm shadow-xs transition flex flex-col items-center justify-center group cursor-pointer">
+                <span class="text-base font-black group-hover:text-kone-600">1</span>
+                <span class="text-[10px] text-slate-400 font-medium mt-0.5">1st Fl</span>
+              </button>
+
+              <!-- Ground Floor -->
+              <button id="simFloorBtn_0" onclick="callElevatorFloor(0)" class="p-3 rounded-xl border border-slate-300 bg-white hover:bg-kone-50 hover:border-kone-400 text-slate-700 font-bold text-sm shadow-xs transition flex flex-col items-center justify-center group cursor-pointer">
+                <span class="text-base font-black group-hover:text-kone-600">G</span>
+                <span class="text-[10px] text-slate-400 font-medium mt-0.5">Lobby</span>
+              </button>
+            </div>
+
+            <!-- Emergency & Safety Action Row -->
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div class="flex items-center space-x-2">
+                <button id="simEmergencyStopBtn" onclick="emergencyStopElevator()" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition flex items-center space-x-1.5 cursor-pointer">
+                  <i data-lucide="octagon-alert" class="w-4 h-4"></i>
+                  <span>Emergency Stop</span>
+                </button>
+                <button id="simResumeBtn" onclick="resumeElevator()" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center space-x-1.5 opacity-50 cursor-pointer">
+                  <i data-lucide="play" class="w-4 h-4"></i>
+                  <span>Resume</span>
+                </button>
+              </div>
+
+              <button onclick="resetElevatorSimulation()" class="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-2xs cursor-pointer">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Reset (Ground)</span>
+              </button>
+            </div>
+
+            <!-- Emergency Banner (Hidden by default) -->
+            <div id="simEmergencyBanner" class="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-300 text-xs text-rose-800 font-medium flex items-center space-x-2.5 hidden">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600 shrink-0 animate-bounce"></i>
+              <div>
+                <strong class="font-bold text-rose-900 block">EMERGENCY BRAKE CLAMPED:</strong>
+                <span>Safety circuit interrupted. Cab motion halted immediately. Click "Resume" to restore normal service.</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 2. VIRTUAL SENSOR ARRAY TELEMETRY & LOG -->
+          <div class="app-card rounded-xl p-4 bg-white border border-slate-200 shadow-card space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div class="flex items-center space-x-2">
+                <div class="w-6 h-6 rounded-full bg-purple-50 text-purple-700 font-bold text-xs flex items-center justify-center border border-purple-200">
+                  <i data-lucide="radio" class="w-3 h-3"></i>
+                </div>
+                <h3 class="font-bold text-xs uppercase tracking-wide text-slate-900">Virtual Optical Sensor Telemetry & Log</h3>
+              </div>
+              <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                60Hz Real-Time Emitter
+              </span>
+            </div>
+
+            <!-- Event Log List Container -->
+            <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1" id="simEventLogList">
+              <div class="text-xs text-slate-400 p-3 text-center">Awaiting initial elevator movement...</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+    <!-- /SMART ELEVATOR LIVE SIMULATION VIEW CONTAINER -->
+  </main>
+
+  <!-- ENTERPRISE FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-4 px-4 text-center mt-auto shadow-xs">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-slate-600 gap-2">
+      <div class="flex items-center space-x-2 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>KONE ElevateRCA Diagnostic Intelligence Engine • EcoDisc PMSM Fleet Monitor</span>
+      </div>
+      <div class="font-mono text-[11px] text-slate-500 font-medium">
+        Active Connected Unit: <span id="footerUnitId" class="text-slate-800 font-bold">KONE-MONO-501</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- FULL ROOT CAUSE RESOLUTION GUIDANCE & INVESTIGATION DOSSIER MODAL -->
+  <div id="rootCauseGuidanceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-5xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-extrabold text-base text-slate-900 tracking-tight" id="guidanceModalTitle">IGBT Inverter Fault</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase" id="guidanceModalConfidence">97% (HIGH CONFIDENCE)</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium">OEM Field SOP, LOTO Isolation, Safety Protocol & Investigation Dossier</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 shrink-0">
+          <button onclick="printReportDocument()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center space-x-1.5 shadow-xs">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-kone-600"></i>
+            <span>Print Dossier</span>
+          </button>
+          <button onclick="copyReportMarkdown()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition flex items-center space-x-1.5 shadow-xs">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy Markdown</span>
+          </button>
+          <button onclick="toggleGuidanceModal(false)" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs inside Guidance Modal -->
+      <div class="flex border-b border-slate-200 bg-slate-50 rounded-lg p-1 shrink-0 text-xs">
+        <button id="guidanceTabSopBtn" onclick="switchGuidanceModalTab('sop')" class="flex-1 py-1.5 px-3 font-bold text-kone-600 bg-white rounded shadow-xs flex items-center justify-center space-x-1.5 transition">
+          <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+          <span>1. OEM Resolution SOP & Safety</span>
+        </button>
+        <button id="guidanceTabReportBtn" onclick="switchGuidanceModalTab('report')" class="flex-1 py-1.5 px-3 font-semibold text-slate-600 hover:text-slate-900 rounded flex items-center justify-center space-x-1.5 transition">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span>2. Full Engineering Dossier</span>
+        </button>
+        <button id="guidanceTabPhysicsBtn" onclick="switchGuidanceModalTab('physics')" class="flex-1 py-1.5 px-3 font-semibold text-slate-600 hover:text-slate-900 rounded flex items-center justify-center space-x-1.5 transition">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span>3. Causal Mechanism & Evidence</span>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="flex-1 overflow-y-auto pr-1 space-y-4 text-xs">
+        
+        <!-- Tab 1: OEM SOP & Action Steps -->
+        <div id="guidanceViewSop" class="space-y-4">
+          <!-- Action Header Banner -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Approved Corrective Procedure</span>
+              <div class="text-sm font-bold text-slate-900 font-mono" id="guidanceActionName">INSPECT_AND_TEST_IGBT</div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200" id="guidanceSeverityBadge">CRITICAL SEVERITY</span>
+          </div>
+
+          <!-- Mandatory Step by Step List -->
+          <div class="space-y-2">
+            <div class="font-bold text-slate-800 flex items-center space-x-1.5">
+              <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-600"></i>
+              <span>Mandatory Field Verification & Corrective Steps:</span>
+            </div>
+            <div class="space-y-2" id="guidanceStepsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Prohibited Actions -->
+          <div class="p-3.5 rounded-xl bg-rose-50/90 border border-rose-200 text-xs">
+            <div class="font-bold text-rose-800 flex items-center space-x-1.5 mb-1.5">
+              <i data-lucide="octagon-x" class="w-4 h-4 text-rose-600"></i>
+              <span class="tracking-wide">CRITICAL SAFETY RESTRICTIONS (PROHIBITED ACTIONS)</span>
+            </div>
+            <ul class="space-y-1 pl-4 list-disc text-rose-900 font-medium" id="guidanceDoNotDoList">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+
+          <!-- Standard Return to Service Protocol -->
+          <div class="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-900 space-y-1">
+            <div class="font-bold text-emerald-800 flex items-center space-x-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+              <span>Return-to-Service Protocol (ASME A17.1 & KONE MX10 Standard):</span>
+            </div>
+            <p class="font-medium text-[11px] leading-relaxed">
+              1. Verify LOTO removal and inspect all cable terminations. 2. Run controller dynamic brake test at 0.3 m/s inspection speed. 3. Execute 3 consecutive full-height express runs with acoustic & thermal vibration telemetry logging.
+            </p>
+          </div>
+        </div>
+
+        <!-- Tab 2: Full Investigation Dossier -->
+        <div id="guidanceViewReport" class="hidden space-y-3">
+          <div id="guidanceReportPaper" class="p-6 bg-white border border-slate-200 rounded-xl font-sans text-xs text-slate-800 space-y-4 shadow-xs leading-relaxed">
+            <!-- Full markdown rendered dossier -->
+          </div>
+        </div>
+
+        <!-- Tab 3: Causal Physics & Evidence -->
+        <div id="guidanceViewPhysics" class="hidden space-y-3">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+            <h4 class="font-bold text-slate-800 uppercase tracking-wide flex items-center space-x-1.5">
+              <i data-lucide="brain" class="w-4 h-4 text-kone-600"></i>
+              <span>Bayesian Causal Narrative & Physics Breakdown:</span>
+            </h4>
+            <p class="text-slate-700 leading-relaxed font-medium" id="guidanceCausalNarrative">
+              <!-- Populated dynamically -->
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white border border-slate-200 space-y-2 text-xs">
+            <h4 class="font-bold text-slate-800">Primary Supporting Evidence Signals:</h4>
+            <div id="guidanceSupportingEvidence" class="space-y-1.5">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Action -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <span class="text-xs text-slate-500 font-medium font-mono">Incident ID: <strong id="guidanceIncidentId" class="text-slate-800">INC-2026-0941</strong></span>
+        <div class="flex space-x-2">
+          <button onclick="toggleGuidanceModal(false)" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-300 transition">
+            Close
+          </button>
+          <button onclick="toggleGuidanceModal(false); switchView('technician');" class="px-4 py-2 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition shadow-xs flex items-center space-x-1.5">
+            <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
+            <span>Execute SOP Checklist</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CUSTOM TELEMETRY PAYLOAD INGESTION MODAL -->
+  <div id="jsonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-sm text-slate-900 flex items-center space-x-2">
+          <i data-lucide="code" class="w-4 h-4 text-kone-500"></i>
+          <span>Ingest Elevator Telemetry & Alarm Data</span>
+        </h3>
+        <button onclick="toggleModal(false)" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <!-- Sample Template Quick Dropdown -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+        <label for="sampleSelect" class="font-bold text-slate-700 whitespace-nowrap shrink-0 flex items-center space-x-1.5">
+          <i data-lucide="file-code" class="w-4 h-4 text-kone-600"></i>
+          <span>Load Sample Template:</span>
+        </label>
+        <select id="sampleSelect" onchange="loadSampleTemplate(this.value)" class="flex-1 min-w-0 w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-kone-500 shadow-2xs">
+          <option value="">-- Choose from 50 Pre-generated Telemetries --</option>
+        </select>
+      </div>
+
+      <!-- Drag & Drop / File Input Zone -->
+      <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:border-kone-500 hover:bg-kone-50/20 transition bg-slate-50/50 cursor-pointer" onclick="document.getElementById('modalFileInput').click()">
+        <input type="file" id="modalFileInput" accept=".json" class="hidden" onchange="handleModalFileUpload(event)" />
+        <i data-lucide="file-up" class="w-7 h-7 text-kone-500 mx-auto mb-1.5"></i>
+        <div class="text-xs font-bold text-slate-800">Click to browse or Drag & Drop raw JSON file</div>
+        <div class="text-[11px] text-slate-500 mt-0.5">Supports .json elevator telemetry files</div>
+      </div>
+
+      <textarea id="jsonPayloadInput" class="w-full h-44 p-3.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-kone-500 focus:bg-white transition" placeholder="Paste KONE JSON payload here..."></textarea>
+      
+      <div class="flex items-center justify-end space-x-2.5 pt-2">
+        <button onclick="toggleModal(false)" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 transition">Cancel</button>
+        <button onclick="ingestCustomJson()" class="px-4 py-2 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition shadow-xs flex items-center space-x-1.5">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>
+          <span>Analyze Payload</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2D ERROR TABLE MATRIX MODAL -->
+  <div id="errorMatrixModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-5xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-kone-50 border border-kone-200 flex items-center justify-center text-kone-600">
+            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Elevator Controller 2D Error Table Matrix</h3>
+            <p class="text-[11px] text-slate-500 font-medium">Error Rank (F1-F7) × Error Generation Part (Subsystems 1–8)</p>
+          </div>
+        </div>
+        <button onclick="toggleErrorMatrixModal(false)" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Matrix Grid View -->
+      <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <table class="w-full border-collapse text-center text-xs font-mono" id="errorMatrixTable">
+          <thead>
+            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
+              <th class="p-2 border-r border-slate-200 text-[11px] font-bold">RANK \ PART</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-kone-700">1: SYSTEM</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-sky-700">2: ENCODER</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-purple-700">3: COMM.</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-rose-700">4: DOOR</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-amber-700">5: INVERTER</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-emerald-700">6: BRAKE</th>
+              <th class="p-2 border-r border-slate-200 font-bold text-indigo-700">7: SWITCH</th>
+              <th class="p-2 font-bold text-slate-700">8: ERROR 8</th>
+            </tr>
+          </thead>
+          <tbody id="errorMatrixBody" class="divide-y divide-slate-200 bg-white">
+            <!-- Dynamically populated rows F1 to F7 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Detail Card for Selected Error Code -->
+      <div id="selectedErrorCard" class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span id="matErrorCode" class="font-bold text-sm text-kone-600 font-mono px-2 py-0.5 rounded bg-kone-50 border border-kone-200">F14</span>
+            <span id="matErrorTitle" class="font-bold text-slate-900 text-xs">X40 ERROR (Door Zone Safety Bypass)</span>
+          </div>
+          <span id="matErrorSeverity" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">CRITICAL</span>
+        </div>
+        <p id="matErrorDesc" class="text-xs text-slate-600 font-medium">Door zone safety bypass / X40 door interlock circuit open during motion.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-slate-200">
+          <div><strong class="text-slate-700">Typical Root Cause:</strong> <span id="matErrorCause" class="text-slate-600">Landing door lock contact bounced open while car was traveling.</span></div>
+          <div><strong class="text-slate-700">OEM SOP:</strong> <span id="matErrorSop" class="text-kone-700 font-bold font-mono">INSPECT_DOOR_SYSTEM</span></div>
+        </div>
+        <div class="flex justify-end pt-2">
+          <button id="matAnalyzeBtn" onclick="analyzeMatrixCode()" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition shadow-xs flex items-center space-x-1.5">
+            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span>Run Diagnostic RCA for this Fault</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OEM GUIDES & ENGINEERING STANDARDS MODAL -->
+  <div id="oemGuidesModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-5xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-kone-50 border border-kone-200 flex items-center justify-center text-kone-600">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">OEM Field Maintenance Guides & Engineering Standards</h3>
+            <p class="text-[11px] text-slate-500 font-medium">KONE MX10/MX20 MCP Procedures, ASME A17.1-2013, SETS-11 & Troubleshooting Dataset</p>
+          </div>
+        </div>
+        <button onclick="toggleOemGuidesModal(false)" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quantitative Engineering Standards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <!-- Card 1: Brake & EcoDisc -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+          <div class="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span>Brake & EcoDisc PMSM</span>
+          </div>
+          <div class="text-[11px] text-slate-600 space-y-1 font-mono">
+            <div>• Air Gap: <strong class="text-slate-900">0.25 - 0.40 mm</strong> (Nominal 0.30mm)</div>
+            <div>• Pad Wear Min: <strong class="text-slate-900">3.5 mm</strong> (Std A) / <strong class="text-slate-900">2.5 mm</strong> (Std B)</div>
+            <div>• Holding Torque: <strong class="text-slate-900">125% rated load</strong> at rest</div>
+            <div>• Critical Discard: <strong class="text-rose-600 font-bold">&lt; 2.0 mm</strong></div>
+          </div>
+        </div>
+
+        <!-- Card 2: Hoisting Ropes & Traction -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+          <div class="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-sky-600"></i>
+            <span>Hoisting Ropes (ISO 4309)</span>
+          </div>
+          <div class="text-[11px] text-slate-600 space-y-1 font-mono">
+            <div>• Max Diameter Loss: <strong class="text-rose-600 font-bold">&gt; 6.0% (Discard)</strong></div>
+            <div>• Wire Breaks Limit: <strong class="text-slate-900">6 / lay length</strong></div>
+            <div>• Crown Wear Limit: <strong class="text-slate-900">&gt; 33% outer wire</strong></div>
+            <div>• Tension Imbalance: <strong class="text-slate-900">&le; 10% variation</strong></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Door & SETS Slowdown -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+          <div class="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+            <i data-lucide="sliders" class="w-3.5 h-3.5 text-purple-600"></i>
+            <span>Door & SETS-11 Slowdown</span>
+          </div>
+          <div class="text-[11px] text-slate-600 space-y-1 font-mono">
+            <div>• Sill Gap Clearance: <strong class="text-slate-900">4.0 &plusmn; 1.0 mm</strong></div>
+            <div>• Roller Eccentric Gap: <strong class="text-slate-900">0.20 mm</strong></div>
+            <div>• Kinetic Energy: <strong class="text-slate-900">&le; 10.0 Joules</strong></div>
+            <div>• SETS Encoder Pulse Tol: <strong class="text-slate-900">&plusmn; 1.5%</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Field Troubleshooting Dataset (ELV-001 to ELV-015) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
+            <i data-lucide="list" class="w-3.5 h-3.5 text-kone-600"></i>
+            <span>15 Canonical Field Troubleshooting Records (ELV-001 — ELV-015):</span>
+          </h4>
+          <input type="text" id="oemSearchInput" oninput="filterOemRecords(this.value)" placeholder="Search symptom, component, cause..." class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-kone-500 w-64" />
+        </div>
+
+        <div class="border border-slate-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 border-b border-slate-200 font-bold text-slate-700 sticky top-0">
+              <tr>
+                <th class="p-2.5">ID</th>
+                <th class="p-2.5">Component</th>
+                <th class="p-2.5">Observed Symptom</th>
+                <th class="p-2.5">Root Cause Category</th>
+                <th class="p-2.5">Priority</th>
+                <th class="p-2.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="oemRecordsBody" class="divide-y divide-slate-100 bg-white">
+              <!-- Dynamically populated from /api/v1/oem-guides -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOSED-LOOP CASE MANAGEMENT & STATE MACHINE MODAL -->
+  <div id="closedLoopCaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-5xl w-full p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-kone-50 border border-kone-200 flex items-center justify-center text-kone-600">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-extrabold text-sm text-slate-900">ElevateRCA Closed-Loop Diagnostic Case Manager</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-kone-50 text-kone-700 border border-kone-200">
+                5-Phase State Machine
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium">Autonomous Diagnostic Iterations • Bayesian Prior/Posterior Updates • Technician In-the-Loop • 21-Section Report</p>
+          </div>
+        </div>
+        <button onclick="toggleClosedLoopCaseModal(false)" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Action Banner & Case Selector -->
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="startCanonicalDemoCase()" class="px-3.5 py-1.5 rounded-lg font-bold bg-kone-500 hover:bg-kone-600 text-white transition shadow-xs flex items-center space-x-1.5 cursor-pointer">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>✨ Start Canonical E2E Demo (ELEV-DX-04)</span>
+          </button>
+          <button onclick="startCaseFromCurrentIncident()" class="px-3 py-1.5 rounded-lg font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs flex items-center space-x-1.5 cursor-pointer">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-kone-600"></i>
+            <span>Create from Current Incident</span>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2 w-full md:w-auto">
+          <input type="text" id="caseLookupIdInput" placeholder="Enter Case ID (e.g. CASE-...)" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-kone-500 flex-1 md:w-48" />
+          <button onclick="loadCaseById(document.getElementById('caseLookupIdInput').value)" class="px-3 py-1 rounded-lg font-semibold bg-slate-200 hover:bg-slate-300 text-slate-800 transition cursor-pointer">
+            Load
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Case Header Badge Bar -->
+      <div id="caseActiveHeaderBar" class="p-3 bg-gradient-to-r from-slate-900 to-kone-950 text-white rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-3">
+          <div>
+            <span class="text-[10px] text-slate-400 block font-mono">CASE ID</span>
+            <span class="font-bold font-mono text-emerald-400 text-sm" id="caseActiveId">No Case Active</span>
+          </div>
+          <div class="h-6 w-px bg-slate-700"></div>
+          <div>
+            <span class="text-[10px] text-slate-400 block">ASSET ID</span>
+            <span class="font-bold text-slate-200" id="caseAssetId">-</span>
+          </div>
+          <div class="h-6 w-px bg-slate-700"></div>
+          <div>
+            <span class="text-[10px] text-slate-400 block">ITERATION</span>
+            <span class="font-bold font-mono text-amber-400" id="caseIterationBadge">0</span>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">STATE:</span>
+          <span id="casePhaseBadge" class="px-2.5 py-0.5 rounded text-[11px] font-black font-mono bg-slate-800 text-slate-300 border border-slate-700">
+            AWAITING CASE CREATION
+          </span>
+        </div>
+      </div>
+
+      <!-- 5-Phase Interactive State Stepper -->
+      <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold" id="caseStateStepper">
+        <div id="stepCol_1" class="p-2.5 rounded-lg border-2 border-kone-500 bg-kone-50 text-kone-700 transition">
+          <div class="text-[10px] uppercase text-kone-500">Phase 1</div>
+          <div class="text-[11px] truncate">1. Initial RCA</div>
+        </div>
+        <div id="stepCol_2" class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition">
+          <div class="text-[10px] uppercase text-slate-400">Phase 2</div>
+          <div class="text-[11px] truncate">2. Tech Feedback</div>
+        </div>
+        <div id="stepCol_3" class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition">
+          <div class="text-[10px] uppercase text-slate-400">Phase 3</div>
+          <div class="text-[11px] truncate">3. Diagnostic Test</div>
+        </div>
+        <div id="stepCol_4" class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition">
+          <div class="text-[10px] uppercase text-slate-400">Phase 4</div>
+          <div class="text-[11px] truncate">4. Validation</div>
+        </div>
+        <div id="stepCol_5" class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition">
+          <div class="text-[10px] uppercase text-slate-400">Phase 5</div>
+          <div class="text-[11px] truncate">5. 21-Sec Report</div>
+        </div>
+      </div>
+
+      <!-- Competing Hypotheses & Bayesian Probabilities Table -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs text-slate-900 flex items-center space-x-1.5">
+            <i data-lucide="scale" class="w-4 h-4 text-kone-600"></i>
+            <span>Competing Hypotheses & Bayesian Updating Across Iterations:</span>
+          </h4>
+          <span class="text-[11px] text-slate-500 font-mono" id="caseHypoCountBadge">0 Hypotheses</span>
+        </div>
+        <div class="border border-slate-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 border-b border-slate-200 font-bold text-slate-700 sticky top-0">
+              <tr>
+                <th class="p-2.5">Hypothesis ID</th>
+                <th class="p-2.5">Component & Failure Mode</th>
+                <th class="p-2.5 text-center">Prior %</th>
+                <th class="p-2.5 text-center">Posterior %</th>
+                <th class="p-2.5">Status</th>
+                <th class="p-2.5">Reasoning / Citations</th>
+              </tr>
+            </thead>
+            <tbody id="caseHypothesesTableBody" class="divide-y divide-slate-100 bg-white">
+              <tr>
+                <td colspan="6" class="p-4 text-center text-slate-400 italic">No case loaded. Click "Start Canonical E2E Demo" above to begin.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Dynamic Step Actions / Controls Area -->
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+        
+        <!-- Step 2: Technician Feedback Form -->
+        <div id="step2FeedbackSection" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
+              <i data-lucide="message-square" class="w-4 h-4 text-kone-600"></i>
+              <span>Technician Field Observation (Natural Language Ingestion):</span>
+            </label>
+            <button onclick="fillCanonicalFeedback()" class="text-[11px] text-kone-600 hover:text-kone-800 font-semibold cursor-pointer">
+              Fill Canonical Field Observation
+            </button>
+          </div>
+          <textarea id="caseFeedbackInput" rows="2" placeholder="e.g. I inspected the roller: there is no visible wear and it rotates freely. The door becomes harder to move near fully closed with mechanical resistance." class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-kone-500 font-medium"></textarea>
+          <div class="flex justify-end">
+            <button onclick="submitCaseTechnicianFeedback()" class="px-4 py-2 rounded-lg text-xs font-bold bg-kone-600 hover:bg-kone-700 text-white transition shadow-xs flex items-center space-x-1.5 cursor-pointer">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>Submit Observation & Update Bayesian Posteriors</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Diagnostic Confirmation Test -->
+        <div id="step3DiagnosticTestSection" class="space-y-2 border-t border-slate-200 pt-3">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
+              <i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i>
+              <span>Physical Diagnostic Test Confirmation:</span>
+            </label>
+            <button onclick="fillCanonicalTestResult()" class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer">
+              Fill Canonical Test (TEST-TRACK-01 FAIL)
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold block mb-1">TEST ID</span>
+              <input type="text" id="caseTestIdInput" value="TEST-TRACK-01" class="w-full p-2 bg-white border border-slate-300 rounded-lg font-mono" />
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold block mb-1">TEST OUTCOME</span>
+              <select id="caseTestOutcomeSelect" class="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold">
+                <option value="FAIL">FAIL (Confirms Mechanical Obstruction)</option>
+                <option value="PASS">PASS (Disproves Obstruction)</option>
+                <option value="NOT_PERFORMED">NOT_PERFORMED</option>
+              </select>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 font-bold block mb-1">OBSERVED FINDINGS / NOTES</span>
+              <input type="text" id="caseTestNotesInput" value="Grit and construction dust found accumulated in landing door sill track groove." class="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs" />
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button onclick="submitCaseTestResult()" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-xs flex items-center space-x-1.5 cursor-pointer">
+              <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
+              <span>Record Physical Test Outcome</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4: Post-Repair Validation -->
+        <div id="step4ValidationSection" class="space-y-2 border-t border-slate-200 pt-3">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+              <span>Post-Repair Validation & Return-to-Service:</span>
+            </label>
+            <button onclick="fillCanonicalValidation()" class="text-[11px] text-emerald-600 hover:text-emerald-800 font-semibold cursor-pointer">
+              Fill Canonical Validation (Passed)
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs items-center">
+            <div class="flex items-center space-x-2 bg-white p-2 border border-slate-300 rounded-lg">
+              <input type="checkbox" id="caseValFaultCleared" checked class="w-4 h-4 text-emerald-600 rounded cursor-pointer" />
+              <label for="caseValFaultCleared" class="font-bold text-slate-800 cursor-pointer">Active Fault Cleared</label>
+            </div>
+            <div class="flex items-center space-x-2 bg-white p-2 border border-slate-300 rounded-lg">
+              <span class="text-slate-600 font-medium">Cycles Passed:</span>
+              <input type="number" id="caseValCyclesPassed" value="5" min="1" max="50" class="w-16 p-1 border border-slate-200 rounded font-bold text-center" />
+            </div>
+            <div>
+              <input type="text" id="caseValNotes" value="Sill vacuumed and lubricated. 5 test cycles passed with nominal closing time (2.8s)." class="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs" />
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button onclick="submitCaseValidationCheck()" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center space-x-1.5 cursor-pointer">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span>Submit Validation & Close Case</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5: 21-Section Report Viewer -->
+        <div id="step5ReportSection" class="space-y-2 border-t border-slate-200 pt-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-xs text-slate-800 flex items-center space-x-1.5">
+              <i data-lucide="file-check-2" class="w-4 h-4 text-kone-600"></i>
+              <span>Official 21-Section Engineering Audit Report Dossier:</span>
+            </span>
+            <div class="flex items-center space-x-2">
+              <button onclick="fetchCaseReport()" class="px-3 py-1 rounded-lg text-xs font-bold bg-kone-500 hover:bg-kone-600 text-white transition shadow-xs flex items-center space-x-1 cursor-pointer">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                <span>Generate / Refresh Report</span>
+              </button>
+              <button onclick="copyCaseReportMarkdown()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 transition shadow-xs cursor-pointer">
+                Copy Markdown
+              </button>
+            </div>
+          </div>
+          <div id="caseReportPaper" class="p-4 bg-white border border-slate-200 rounded-xl font-mono text-[11px] text-slate-800 max-h-64 overflow-y-auto space-y-2 shadow-inner">
+            <div class="text-slate-400 italic">Report not yet fetched. Click "Generate / Refresh Report" above.</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    let currentTrace = null;
+    let currentIncidentId = 'INC-2026-0941';
+    let completedSteps = new Set();
+
+    // High-Precision Real-Time Diagnostic Clock
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toISOString().substring(11, 19);
+      const dateStr = now.toISOString().substring(0, 10);
+      const clockEl = document.getElementById('clockUtc');
+      if (clockEl) clockEl.innerText = `${timeStr} UTC`;
+      const dateEl = document.getElementById('clockDate');
+      if (dateEl) dateEl.innerText = dateStr;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Load Incident Scenario
+    async function loadIncident(incidentId) {
+      currentIncidentId = incidentId;
+      completedSteps.clear();
+      
+      // Update active state on scenario buttons if triggered
+      document.querySelectorAll('.scenario-btn').forEach(b => {
+        b.classList.remove('bg-kone-500', 'text-white', 'border-kone-600', 'font-bold');
+        b.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+      });
+
+      try {
+        const res = await fetch(`/api/v1/incidents/${incidentId}/analyze`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to analyze incident');
+        const trace = await res.json();
+        renderTrace(trace);
+      } catch (err) {
+        console.error('Error analyzing incident:', err);
+        alert('Error analyzing incident: ' + err.message);
+      }
+    }
+
+    // Direct File Upload from Topbar
+    function handleDirectFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const payload = JSON.parse(e.target.result);
+          await analyzeCustomPayload(payload);
+        } catch (err) {
+          alert('Invalid JSON file format: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // File Upload inside Modal
+    function handleModalFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('jsonPayloadInput').value = e.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    // Populate Sample Dropdowns with Door Telemetry Scenarios
+    // State tracking for 2-Stage Verification Workflow
+    let currentVerificationStage = 1;
+    let currentStageSteps = [];
+
+    function getStage2Steps(rcName, trace) {
+      const rc = (rcName || '').toLowerCase();
+      if (rc.includes('track') || rc.includes('roller') || rc.includes('misalignment') || rc.includes('distortion')) {
+        return [
+          "Perform precision dial indicator runout measurement across header tracks (OEM Tol: <0.50 mm).",
+          "Loosen header mounting eccentric bolts and re-align car-to-landing sill track plumb line.",
+          "Torque all track fasteners to 45 N-m and test door opening/closing kinetic profile under full stroke.",
+          "Calibrate door motor kinetic acceleration and deceleration ramps in controller menu."
+        ];
+      } else if (rc.includes('photo') || rc.includes('curtain') || rc.includes('optical') || rc.includes('sync')) {
+        return [
+          "Clean optical receiver and transmitter lenses with lint-free isopropyl alcohol wipes.",
+          "Calibrate 3D multi-beam sync timing oscillator in car top junction box (OEM spec: ±2ms).",
+          "Verify optical curtain blanking edge sensitivity under ambient sunlight test condition.",
+          "Execute 5 continuous reopening cycles to confirm zero false beam trips."
+        ];
+      } else if (rc.includes('lock') || rc.includes('contact') || rc.includes('interlock') || rc.includes('hook') || rc.includes('pitting')) {
+        return [
+          "Burnish landing interlock electrical contacts with fine contact dressing tool and lint-free pad.",
+          "Verify safety interlock hook mechanical engagement depth is >= 7.0mm under ASME A17.1 / KONE norm.",
+          "Measure closed-circuit interlock loop contact resistance (must read < 0.20 Ohms).",
+          "Verify landing door sill safety drop clearance under manual door release key operation."
+        ];
+      } else if (rc.includes('belt') || rc.includes('motor') || rc.includes('inverter') || rc.includes('torque') || rc.includes('slip')) {
+        return [
+          "Adjust toothed drive belt tensioner to 15mm deflection under 10N transverse test gauge.",
+          "Inspect drive motor pulley tooth profile for polymer wear, debris, or micro-slippage.",
+          "Calibrate door operator PM motor drive inverter current limit to 1.8A nominal in drive board.",
+          "Perform full-speed opening/closing test to verify smooth kinematic velocity profile."
+        ];
+      } else {
+        return [
+          "Perform secondary subsystem precision mechanical clearance & tolerance verification.",
+          "Verify electrical continuity, harness grounding, and sensor signal integrity under load.",
+          "Calibrate controller software parameters to OEM factory baseline defaults.",
+          "Run multi-cycle automated dynamic return-to-service test to achieve 100% full recovery."
+        ];
+      }
+    }
+
+    function renderTechnicianChecklist() {
+      const listEl = document.getElementById('techStepsList');
+      if (!listEl) return;
+      
+      listEl.innerHTML = currentStageSteps.map((s, idx) => `
+        <div onclick="toggleStep(${idx})" id="stepCard_${idx}" class="p-2.5 rounded-lg border border-slate-200 hover:border-kone-400 bg-white flex items-start space-x-2.5 cursor-pointer transition">
+          <input type="checkbox" id="chkStep_${idx}" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-kone-600 focus:ring-kone-500 pointer-events-none" />
+          <span class="text-slate-800 leading-snug" id="stepText_${idx}">${s}</span>
+        </div>
+      `).join('');
+      
+      updateSopCounter(currentStageSteps.length);
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    // Populate Sample Dropdowns with Canonical Incidents and 20 Door Telemetries
+    async function populateSampleDropdown() {
+      try {
+        const modalSelect = document.getElementById('sampleSelect');
+        const headerSelect = document.getElementById('headerDoorSampleSelect');
+        
+        if (modalSelect) modalSelect.innerHTML = '<option value="">-- Choose Incident / Telemetry Scenario --</option>';
+        if (headerSelect) headerSelect.innerHTML = '<option value="">-- Quick Load Incident / Telemetry --</option>';
+
+        // 1. Canonical Production Incidents (Scenarios 1-6)
+        const canonicalIncidents = [
+          { id: "INC-2026-0941", title: "⚡ INC-0941: EcoDisc Motor Overcurrent (IGBT Trip)" },
+          { id: "INC-2026-0942", title: "⚡ INC-0942: Hoistway Guide Rail Mechanical Jam" },
+          { id: "INC-2026-0943", title: "⚡ INC-0943: 3D Light Curtain Sensor Drift" },
+          { id: "INC-2026-0944", title: "⚡ INC-0944: EcoDisc Optical Encoder Pulse Divergence" },
+          { id: "INC-2026-0945", title: "⚡ INC-0945: Brake Release Timing Delay & Drag" },
+          { id: "INC-2026-0946", title: "⚡ INC-0946: Degraded Sensor Telemetry (Abstention)" }
+        ];
+
+        const groupIncHeader = document.createElement('optgroup');
+        groupIncHeader.label = "⚡ Canonical Fault Scenarios (Scenarios 1 - 6)";
+        canonicalIncidents.forEach(inc => {
+          const opt = document.createElement('option');
+          opt.value = inc.id;
+          opt.innerText = inc.title;
+          groupIncHeader.appendChild(opt);
+        });
+        if (headerSelect) headerSelect.appendChild(groupIncHeader);
+
+        // 2. Door Telemetries (#01 - #20)
+        const res = await fetch('/api/v1/telemetry-samples?subsystem=door');
+        if (!res.ok) return;
+        const samples = await res.json();
+        
+        const group1Modal = document.createElement('optgroup');
+        group1Modal.label = "🟢 Single-Stage Telemetry (#01 - #10) — Direct 100% RTS";
+        const group1Header = document.createElement('optgroup');
+        group1Header.label = "🟢 Single-Stage Telemetry (#01 - #10) — Direct 100% RTS";
+
+        const group2Modal = document.createElement('optgroup');
+        group2Modal.label = "🟡 Two-Stage Telemetry (#11 - #20) — Latent Rank 2 Resolution";
+        const group2Header = document.createElement('optgroup');
+        group2Header.label = "🟡 Two-Stage Telemetry (#11 - #20) — Latent Rank 2 Resolution";
+
+        samples.forEach((item, index) => {
+          const isTwo = (item.verification_stage === 'TWO_STAGE' || index >= 10);
+          
+          const opt1 = document.createElement('option');
+          opt1.value = item.filename;
+          opt1.innerText = item.title || `[DOOR #${index + 1}] ${item.filename}`;
+          
+          const opt2 = document.createElement('option');
+          opt2.value = item.filename;
+          opt2.innerText = item.title || `[DOOR #${index + 1}] ${item.filename}`;
+
+          if (isTwo) {
+            group2Modal.appendChild(opt1);
+            group2Header.appendChild(opt2);
+          } else {
+            group1Modal.appendChild(opt1);
+            group1Header.appendChild(opt2);
+          }
+        });
+
+        if (modalSelect) {
+          modalSelect.appendChild(group1Modal);
+          modalSelect.appendChild(group2Modal);
+        }
+        if (headerSelect) {
+          headerSelect.appendChild(group1Header);
+          headerSelect.appendChild(group2Header);
+        }
+      } catch (e) {
+        console.error('Failed to populate door samples dropdown:', e);
+      }
+    }
+
+    async function loadAndAnalyzeDoorSample(target) {
+      if (!target) return;
+      try {
+        if (target.startsWith('INC-')) {
+          await loadIncident(target);
+          const headerSelect = document.getElementById('headerDoorSampleSelect');
+          if (headerSelect) headerSelect.value = target;
+          return;
+        }
+
+        const res = await fetch(`/api/v1/telemetry-samples/${target}`);
+        if (!res.ok) throw new Error('Sample not found');
+        const data = await res.json();
+        
+        // Sync selects
+        const modalSelect = document.getElementById('sampleSelect');
+        const headerSelect = document.getElementById('headerDoorSampleSelect');
+        if (modalSelect) modalSelect.value = target;
+        if (headerSelect) headerSelect.value = target;
+        
+        await analyzeCustomPayload(data);
+      } catch (err) {
+        alert('Could not load and analyze sample: ' + err.message);
+      }
+    }
+
+    async function loadAndAnalyzeSample(filename) {
+      return loadAndAnalyzeDoorSample(filename);
+    }
+
+    async function loadSampleTemplate(filename) {
+      if (!filename) return;
+      try {
+        const res = await fetch(`/api/v1/telemetry-samples/${filename}`);
+        if (!res.ok) throw new Error('Sample not found');
+        const data = await res.json();
+        document.getElementById('jsonPayloadInput').value = JSON.stringify(data, null, 2);
+      } catch (err) {
+        alert('Could not load sample: ' + err.message);
+      }
+    }
+
+    async function analyzeCustomPayload(payload) {
+      try {
+        const res = await fetch('/api/v1/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Analysis failed');
+        const trace = await res.json();
+        renderTrace(trace);
+      } catch (err) {
+        alert('Analysis error: ' + err.message);
+      }
+    }
+
+    function updateSopCounter(total) {
+      const counter = document.getElementById('sopCounter');
+      if (counter) counter.innerText = `${completedSteps.size}/${total} Done`;
+
+      const rtsBadge = document.getElementById('techRtsBadge');
+      const rtsBtn = document.getElementById('btnRunRtsTest');
+      if (completedSteps.size === total && total > 0) {
+        if (rtsBadge) {
+          rtsBadge.className = 'text-[10px] font-black uppercase bg-emerald-500 text-white px-2.5 py-0.5 rounded shadow-xs animate-pulse';
+          rtsBadge.innerText = `${total}/${total} DONE • READY FOR RTS TEST`;
+        }
+        if (rtsBtn) {
+          rtsBtn.classList.add('ring-4', 'ring-emerald-300', 'animate-pulse');
+        }
+      } else {
+        if (rtsBadge) {
+          rtsBadge.className = 'text-[10px] font-bold uppercase bg-white text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded shadow-2xs';
+          rtsBadge.innerText = `${completedSteps.size}/${total} DONE • IN PROGRESS`;
+        }
+        if (rtsBtn) {
+          rtsBtn.classList.remove('ring-4', 'ring-emerald-300', 'animate-pulse');
+        }
+      }
+    }
+
+    function toggleStep(idx) {
+      const total = currentStageSteps.length;
+      const chk = document.getElementById(`chkStep_${idx}`);
+      const card = document.getElementById(`stepCard_${idx}`);
+      const text = document.getElementById(`stepText_${idx}`);
+      if (!chk || !card) return;
+
+      if (completedSteps.has(idx)) {
+        completedSteps.delete(idx);
+        chk.checked = false;
+        card.classList.remove('bg-emerald-50', 'border-emerald-300');
+        card.classList.add('bg-white', 'border-slate-200');
+        if (text) text.classList.remove('line-through', 'text-slate-400');
+      } else {
+        completedSteps.add(idx);
+        chk.checked = true;
+        card.classList.remove('bg-white', 'border-slate-200');
+        card.classList.add('bg-emerald-50', 'border-emerald-300');
+        if (text) text.classList.add('line-through', 'text-slate-400');
+      }
+      updateSopCounter(total);
+    }
+
+    // Telemetry Fault Simulation Replay in Live Engine
+    async function simulateCurrentFaultInEngine() {
+      if (!currentTrace) {
+        try {
+          const res = await fetch(`/api/v1/incidents/${currentIncidentId || 'INC-2026-0941'}/analyze`, { method: 'POST' });
+          if (res.ok) {
+            currentTrace = await res.json();
+            renderTrace(currentTrace);
+          }
+        } catch (e) {
+          console.error('Error auto-fetching trace:', e);
+        }
+      }
+      switchMainModule('simulation');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const sim = window.elevatorSim || initElevatorSimulation();
+      if (currentTrace) {
+        sim.simulateFaultFromTrace(currentTrace);
+      }
+    }
+
+    // Return-to-Service Test Simulation Execution & Clearance
+    function runReturnToServiceTestSimulation() {
+      const totalSteps = currentStageSteps.length || 0;
+      if (completedSteps.size < totalSteps || totalSteps === 0) {
+        alert(`⚠️ INCOMPLETE TECHNICIAN SOP CHECKLIST!\n\nYou must perform and check all ${totalSteps} mandatory verification steps before Return-to-Service testing can be authorized.\n\nProgress: ${completedSteps.size}/${totalSteps} steps completed.\nPlease mark all checklist items first.`);
+        return;
+      }
+
+      const sim = window.elevatorSim || initElevatorSimulation();
+      const rtsBanner = document.getElementById('rtsCompletionBanner');
+      const isTwoStage = (currentTrace?.verification_stage === 'TWO_STAGE' || (currentTrace?.elevator_id && currentTrace?.elevator_id.includes('DOOR-2')));
+      
+      // CASE 1: Stage 1 of Two-Stage Verification
+      if (isTwoStage && currentVerificationStage === 1) {
+        if (rtsBanner) {
+          rtsBanner.classList.remove('hidden');
+          rtsBanner.innerHTML = `
+            <div class="flex items-center space-x-2 text-amber-800 font-bold">
+              <span class="w-3 h-3 rounded-full bg-amber-500 animate-ping"></span>
+              <span>Running Stage-1 dynamic return-to-service stress test sequence...</span>
+            </div>
+          `;
+        }
+
+        sim.runReturnToServiceTest(() => {
+          // Identify Rank 2 Root Cause
+          const rank2Hyp = (currentTrace.hypotheses && currentTrace.hypotheses[1]) ? currentTrace.hypotheses[1] : { root_cause: 'Secondary Subsystem Precision Calibration & Latent Interlock Clearance' };
+          
+          // Transition to Stage 2
+          currentVerificationStage = 2;
+          currentStageSteps = getStage2Steps(rank2Hyp.root_cause, currentTrace);
+          completedSteps.clear();
+
+          // Log in simulator
+          sim.logEvent('SAFETY', `[STAGE 1 VERIFIED] Dynamic test revealed Secondary Latent Fault (Rank #2: ${rank2Hyp.root_cause}).`);
+
+          // Update Technician UI
+          document.getElementById('techActionName').innerText = `STAGE 2: ${rank2Hyp.root_cause}`;
+          document.getElementById('techSeverityBadge').innerText = 'STAGE 2 LATENT ROOT CAUSE';
+          document.getElementById('techSeverityBadge').className = 'px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-50 text-amber-800 border border-amber-300';
+          
+          const stageBadge = document.getElementById('techVerificationStageBadge');
+          if (stageBadge) {
+            stageBadge.innerText = 'STAGE 2/2 • SECONDARY OEM INVESTIGATION REQUIRED';
+            stageBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-rose-50 text-rose-700 border border-rose-300 animate-pulse';
+          }
+
+          renderTechnicianChecklist();
+
+          const rtsBtn = document.getElementById('btnRunRtsTest');
+          if (rtsBtn) {
+            rtsBtn.innerHTML = `
+              <i data-lucide="flask-conical" class="w-4 h-4"></i>
+              <span>🧪 Run Final Stage-2 Return-to-Service Test Simulation</span>
+            `;
+            rtsBtn.className = 'w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer';
+          }
+
+          // Update Banner
+          if (rtsBanner) {
+            rtsBanner.classList.remove('hidden');
+            rtsBanner.innerHTML = `
+              <div class="p-3 bg-amber-50 border-2 border-amber-400 rounded-xl text-amber-950 space-y-1.5 shadow-sm">
+                <div class="flex items-center justify-between font-bold text-xs">
+                  <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                    <span>⚠️ STAGE 1 VERIFIED — Secondary Root Cause Detected: <span class="text-rose-700 font-bold">${rank2Hyp.root_cause}</span></span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-mono text-[10px]">75% HEALTH</span>
+                </div>
+                <p class="text-[11px] font-medium leading-snug text-slate-700">The Stage 1 test cleared primary symptoms, but dynamic hoistway cycle stress detected the latent Rank #2 root cause. Complete the Stage 2 checklist above and run the final RTS simulation to achieve 100% full recovery.</p>
+              </div>
+            `;
+          }
+
+          // Update Hypotheses Ranking to show Stage 2 Active
+          const hypContainer = document.getElementById('hypothesesRankingList');
+          if (hypContainer) {
+            hypContainer.innerHTML = `
+              <div class="p-4 rounded-xl bg-amber-50/90 border-2 border-amber-400 shadow-sm text-xs space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span class="font-bold text-amber-900 text-sm">Stage 1 Passed • Stage 2 Active: ${rank2Hyp.root_cause}</span>
+                  </div>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                    STAGE 2 ACTIVE (RANK #2)
+                  </span>
+                </div>
+                <div>
+                  <div class="flex justify-between text-[11px] mb-1">
+                    <span class="text-amber-800 font-semibold">Post-Stage 1 Health Status</span>
+                    <span class="font-bold font-mono text-amber-900">75% (STAGE 2 REQUIRED)</span>
+                  </div>
+                  <div class="w-full bg-amber-100 rounded-full h-2.5 overflow-hidden border border-amber-200">
+                    <div class="bg-amber-500 h-2.5 rounded-full transition-all duration-500 w-3/4"></div>
+                  </div>
+                </div>
+                <div class="text-[11px] text-amber-900 bg-white/80 p-2.5 rounded-lg border border-amber-200 font-medium">
+                  <span class="font-bold text-amber-800">[i] Latent Anomaly Evidence:</span> Primary symptoms resolved. Complete Stage 2 precision verification to eliminate secondary stress anomalies and achieve 100% Return-to-Service clearance.
+                </div>
+              </div>
+            `;
+          }
+
+          if (window.lucide) window.lucide.createIcons();
+        });
+        return;
+      }
+
+      // CASE 2: Single-Stage RTS OR Final Stage-2 RTS
+      if (rtsBanner) {
+        rtsBanner.classList.remove('hidden');
+        rtsBanner.innerHTML = `
+          <div class="flex items-center space-x-2 text-emerald-800 font-bold">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Running automated final Return-to-Service calibration & safety test sequence...</span>
+          </div>
+        `;
+      }
+
+      sim.runReturnToServiceTest(() => {
+        // 1. Clear Active Faults and update top KPI strip
+        const stripSev = document.getElementById('stripSeverity');
+        if (stripSev) {
+          stripSev.innerText = '0 ACTIVE FAULTS / SYSTEM HEALTHY';
+          stripSev.className = 'text-[10px] text-emerald-700 font-bold uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200';
+        }
+
+        const stripAlarm = document.getElementById('stripPrimaryAlarm');
+        if (stripAlarm) {
+          stripAlarm.innerText = 'NONE (ALL CLEAR)';
+          stripAlarm.className = 'font-bold text-sm text-emerald-700 font-mono truncate';
+        }
+
+        const stripWinner = document.getElementById('stripTopWinner');
+        if (stripWinner) {
+          stripWinner.innerText = 'All Subsystems Nominal (Clearance Verified)';
+          stripWinner.className = 'font-bold text-sm text-emerald-700 truncate';
+        }
+
+        const stripConf = document.getElementById('stripConfidence');
+        if (stripConf) {
+          stripConf.innerText = '100% HEALTHY (NORMAL SERVICE)';
+          stripConf.className = 'text-[10px] text-emerald-700 font-bold';
+        }
+
+        const actionStatus = document.getElementById('stripActionStatus');
+        if (actionStatus) {
+          actionStatus.innerText = 'Verified Safe • Returned to Service';
+          actionStatus.className = 'text-[10px] text-emerald-700 font-bold truncate';
+        }
+
+        const stageBadge = document.getElementById('techVerificationStageBadge');
+        if (stageBadge) {
+          stageBadge.innerText = '100% RETURNED TO SERVICE';
+          stageBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200';
+        }
+
+        // 2. Set Bayesian Hypotheses Ranking to Rank 0 / All Clear
+        const hypContainer = document.getElementById('hypothesesRankingList');
+        if (hypContainer) {
+          hypContainer.innerHTML = `
+            <div class="p-4 rounded-xl bg-emerald-50/90 border-2 border-emerald-500 shadow-sm text-xs space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                  <span class="font-bold text-emerald-900 text-sm">All Subsystems Nominal & Healthy</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  RANK #0 — 0 ACTIVE FAULTS
+                </span>
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] mb-1">
+                  <span class="text-emerald-700 font-semibold">System Operational Health</span>
+                  <span class="font-bold font-mono text-emerald-800">100% NORMAL</span>
+                </div>
+                <div class="w-full bg-emerald-100 rounded-full h-2.5 overflow-hidden border border-emerald-200">
+                  <div class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500 w-full"></div>
+                </div>
+              </div>
+              <div class="text-[11px] text-emerald-900 bg-white/80 p-2.5 rounded-lg border border-emerald-200 font-medium">
+                <span class="font-bold text-emerald-800">[✓] Return-to-Service Clearance:</span> Safety chain continuity verified, door optical interlocks synchronized, motor current calibrated at 1.5A nominal. 0 fault codes active.
+              </div>
+            </div>
+          `;
+        }
+
+        // 3. Update Dual Confidence & Narrative
+        const rootConf = document.getElementById('dualRootConf');
+        if (rootConf) rootConf.innerText = '100% (HEALTHY)';
+        const actionConf = document.getElementById('dualActionConf');
+        if (actionConf) actionConf.innerText = '100% (RESTORED)';
+        
+        const narrative = document.getElementById('causalNarrativeText');
+        if (narrative) {
+          narrative.innerHTML = `
+            <div class="text-emerald-900 font-medium space-y-1">
+              <div class="font-bold text-emerald-800 flex items-center space-x-1.5">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+                <span>POST-MAINTENANCE RTS VERIFICATION PASSED:</span>
+              </div>
+              <p>All mandatory technician SOP steps completed. All mechanical clearances, electrical safety circuits, and door sensors tested under ASME A17.1 / KONE standard. System cleared of active fault rank and restored to autonomous dispatch.</p>
+            </div>
+          `;
+        }
+
+        // 4. Update banner
+        if (rtsBanner) {
+          rtsBanner.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-emerald-900 font-bold">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>
+                <span>✅ Return-to-Service Test Passed: 0 Active Faults (Rank 0 / 100% Normal)</span>
+              </div>
+              <button onclick="switchMainModule('simulation')" class="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-2xs cursor-pointer">
+                View Live Simulator
+              </button>
+            </div>
+          `;
+        }
+
+        const rtsBtn = document.getElementById('btnRunRtsTest');
+        if (rtsBtn) {
+          rtsBtn.innerHTML = `<i data-lucide="shield-check" class="w-4 h-4"></i><span>✅ 100% Verified & Cleared to Return to Service</span>`;
+          rtsBtn.className = 'w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-emerald-600 text-white transition shadow-xs flex items-center justify-center space-x-2 opacity-90 cursor-default';
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+      });
+    }
+
+
+    async function ingestCustomJson() {
+      const text = document.getElementById('jsonPayloadInput').value;
+      try {
+        const payload = JSON.parse(text);
+        await analyzeCustomPayload(payload);
+        toggleModal(false);
+      } catch (err) {
+        alert('Invalid JSON: ' + err.message);
+      }
+    }
+
+    // Render Full Trace to UI
+    function renderTrace(trace) {
+      currentTrace = trace;
+      completedSteps.clear();
+
+      // 1. Top Strip
+      document.getElementById('stripElevatorId').innerText = trace.elevator_id;
+      document.getElementById('stripElevatorModel').innerText = trace.fault_episode.primary_alarm.subsystem.replace('_', ' ').toUpperCase();
+      document.getElementById('stripPrimaryAlarm').innerText = trace.fault_episode.primary_alarm.alarm_code;
+      document.getElementById('stripSeverity').innerText = trace.fault_episode.primary_alarm.severity.toUpperCase() + ' SEVERITY';
+      document.getElementById('footerUnitId').innerText = trace.elevator_id;
+      document.getElementById('stripActionName').innerText = trace.corrective_recommendation.recommended_action;
+
+      const topH = trace.hypotheses[0] || {};
+      document.getElementById('stripTopWinner').innerText = trace.rca_conclusion.abstained ? 'Inconclusive (Abstained)' : topH.root_cause;
+      document.getElementById('stripConfidence').innerText = `${Math.round(trace.rca_conclusion.root_cause_confidence * 100)}% (${trace.rca_conclusion.root_cause_confidence_tier})`;
+
+      // 2. Cascade Timeline (if container present)
+      if (document.getElementById('cascadeTimeSpan')) {
+        document.getElementById('cascadeTimeSpan').innerText = `${trace.fault_episode.time_span_seconds.toFixed(2)}s span`;
+      }
+      if (document.getElementById('cascadeClassification')) {
+        document.getElementById('cascadeClassification').innerText = trace.fault_episode.episode_classification;
+      }
+
+      const timelineContainer = document.getElementById('cascadeTimelineList');
+      if (timelineContainer) {
+        let timelineHtml = `
+          <div class="relative pl-7 pb-3">
+            <span class="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full bg-rose-500 ring-4 ring-rose-100"></span>
+            <div class="p-3 rounded-xl bg-rose-50/80 border border-rose-200 text-xs shadow-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-900 font-mono">${trace.fault_episode.primary_alarm.alarm_code}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-100 text-rose-700 border border-rose-200">PRIMARY ROOT TRIGGER</span>
+              </div>
+              <div class="text-[11px] text-slate-600 mt-1 font-medium">${trace.fault_episode.primary_alarm.subsystem} • ${trace.fault_episode.primary_alarm.timestamp.substring(11, 23)}</div>
+            </div>
+          </div>
+        `;
+
+        trace.fault_episode.consequential_alarms.forEach(c => {
+          timelineHtml += `
+            <div class="relative pl-7 pb-2.5">
+              <span class="absolute left-2 top-2 w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              <div class="p-3 rounded-xl bg-white border border-slate-200 text-xs shadow-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 font-mono">${c.alarm_code}</span>
+                  <span class="text-[10px] font-bold text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded">CONSEQUENTIAL TRIP</span>
+                </div>
+                <div class="text-[11px] text-slate-600 mt-1 font-medium">${c.causal_relationship}</div>
+              </div>
+            </div>
+          `;
+        });
+        timelineContainer.innerHTML = timelineHtml;
+      }
+
+      // 3. Telemetry Signals (if container present)
+      const telemetryContainer = document.getElementById('telemetrySignalsList');
+      if (telemetryContainer) {
+        let telemetryHtml = '';
+        trace.evidence_bundle.filter(e => e.provenance === 'MEASURED').forEach(sig => {
+          const isElevated = sig.value.includes('ELEVATED') || sig.value.includes('SPIKE') || sig.value.includes('DRIFT');
+          const badgeColor = isElevated ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-slate-100 text-slate-600 border-slate-200';
+          telemetryHtml += `
+            <div class="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-xs shadow-xs hover:border-slate-300 transition">
+              <div>
+                <div class="font-mono font-bold text-slate-900">${sig.signal_or_record}</div>
+                <div class="text-[11px] text-slate-600 font-medium mt-0.5">${sig.value}</div>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
+                ${sig.quality.toUpperCase()} QUALITY
+              </span>
+            </div>
+          `;
+        });
+        telemetryContainer.innerHTML = telemetryHtml || '<div class="text-xs text-slate-500">No telemetry recorded.</div>';
+      }
+
+      // 4. Evidence Bundle (if present)
+      const bundleContainer = document.getElementById('evidenceBundleList');
+      if (bundleContainer) {
+        let bundleHtml = '';
+        trace.evidence_bundle.forEach(item => {
+          const provColors = {
+            MEASURED: 'text-kone-700 bg-kone-50 border-kone-200',
+            LOGGED: 'text-purple-700 bg-purple-50 border-purple-200',
+            HISTORICAL: 'text-amber-800 bg-amber-50 border-amber-200',
+            INFERRED: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+            UNAVAILABLE: 'text-slate-500 bg-slate-100 border-slate-200'
+          };
+          const colorClass = provColors[item.provenance] || provColors.MEASURED;
+          bundleHtml += `
+            <div class="p-2.5 rounded-xl bg-white border border-slate-200 flex items-start justify-between gap-2 shadow-xs">
+              <div>
+                <div class="font-bold text-slate-800">${item.signal_or_record}</div>
+                <div class="text-[11px] text-slate-600 font-mono mt-0.5">${item.value}</div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-mono uppercase font-bold border ${colorClass}">
+                [${item.provenance}]
+              </span>
+            </div>
+          `;
+        });
+        bundleContainer.innerHTML = bundleHtml;
+      }
+
+      // 5. Hypotheses Ranking
+      const hypContainer = document.getElementById('hypothesesRankingList');
+      let hypHtml = '';
+      trace.hypotheses.forEach(h => {
+        const isWinner = (h.rank === 1 && !trace.rca_conclusion.abstained);
+        const isEliminated = (h.status === 'ELIMINATED');
+        const probPct = Math.round(h.posterior_probability * 100);
+        const barColor = isWinner ? 'bg-emerald-500' : (isEliminated ? 'bg-rose-400' : 'bg-kone-500');
+        const statusBadge = isEliminated 
+          ? '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">ELIMINATED</span>'
+          : (isWinner ? '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">PROBABLE ROOT CAUSE</span>'
+                      : `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">RANK #${h.rank}</span>`);
+
+        hypHtml += `
+          <div onclick="openRootCauseGuidanceModal('${h.root_cause}')" class="p-4 rounded-xl ${isWinner ? 'bg-white border-2 border-emerald-500 shadow-card hover:border-emerald-600' : 'bg-white border border-slate-200 shadow-xs hover:border-slate-300'} text-xs space-y-2.5 cursor-pointer transition group" title="Click to view full guidance and investigation report for this root cause">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-slate-900 text-sm group-hover:text-kone-600 transition">${h.root_cause}</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-[9px] font-bold text-slate-500 bg-slate-100 group-hover:bg-kone-50 group-hover:text-kone-700 px-2 py-0.5 rounded border border-slate-200 transition flex items-center space-x-1">
+                  <span>Guidance</span>
+                  <i data-lucide="arrow-right" class="w-2.5 h-2.5"></i>
+                </span>
+                ${statusBadge}
+              </div>
+            </div>
+
+            <!-- Probability Bar -->
+            <div>
+              <div class="flex justify-between text-[11px] mb-1">
+                <span class="text-slate-500 font-semibold">Bayesian Posterior Weight</span>
+                <span class="font-bold font-mono ${isWinner ? 'text-emerald-700' : 'text-slate-800'}">${probPct}%</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
+                <div class="${barColor} h-2.5 rounded-full transition-all duration-500" style="width: ${probPct}%"></div>
+              </div>
+            </div>
+
+            <!-- Supporting & Contradicting Evidence -->
+            ${h.supporting_evidence.length > 0 ? `
+              <div class="text-[11px] text-emerald-900 bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200 font-medium">
+                <span class="font-bold text-emerald-800">[+] Supporting Evidence:</span> ${h.supporting_evidence.map(s => s.evidence).join('; ')}
+              </div>
+            ` : ''}
+
+            ${h.contradicting_evidence.length > 0 ? `
+              <div class="text-[11px] text-rose-900 bg-rose-50/80 p-2.5 rounded-lg border border-rose-200 font-medium">
+                <span class="font-bold text-rose-800">[-] Negative / Contradicting Evidence:</span> ${h.contradicting_evidence.map(c => c.evidence).join('; ')}
+              </div>
+            ` : ''}
+
+            ${h.eliminated_reason ? `
+              <div class="text-[11px] text-slate-700 italic bg-slate-50 p-2.5 rounded-lg border border-slate-200 font-medium">
+                <span class="text-rose-700 font-bold not-italic">[x] Elimination Rationale:</span> ${h.eliminated_reason}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      hypContainer.innerHTML = hypHtml;
+
+      // 6. Synthesis Narrative & Dual Conf
+      document.getElementById('dualRootConf').innerText = `${Math.round(trace.rca_conclusion.root_cause_confidence * 100)}% (${trace.rca_conclusion.root_cause_confidence_tier})`;
+      document.getElementById('dualActionConf').innerText = `${Math.round(trace.rca_conclusion.action_confidence * 100)}% (${trace.rca_conclusion.action_confidence_tier})`;
+      document.getElementById('causalNarrativeText').innerText = trace.rca_conclusion.causal_narrative;
+
+      // 7. Technician View & Interactive Checkboxes
+      currentVerificationStage = 1;
+      const isTwoStage = (trace.verification_stage === 'TWO_STAGE' || (trace.elevator_id && trace.elevator_id.includes('DOOR-2')));
+      
+      const stageBadge = document.getElementById('techVerificationStageBadge');
+      if (stageBadge) {
+        if (isTwoStage) {
+          stageBadge.innerText = 'STAGE 1/2 • PRIMARY OEM RESOLUTION';
+          stageBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-50 text-amber-800 border border-amber-300';
+        } else {
+          stageBadge.innerText = 'SINGLE-STAGE • DIRECT RETURN-TO-SERVICE';
+          stageBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-300';
+        }
+      }
+
+      const rtsBanner = document.getElementById('rtsCompletionBanner');
+      if (rtsBanner) rtsBanner.classList.add('hidden');
+
+      const rtsBtn = document.getElementById('btnRunRtsTest');
+      if (rtsBtn) {
+        if (isTwoStage) {
+          rtsBtn.innerHTML = `<i data-lucide="flask-conical" class="w-4 h-4"></i><span>🧪 Run Stage-1 Return-to-Service Test Simulation</span>`;
+          rtsBtn.className = 'w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer';
+        } else {
+          rtsBtn.innerHTML = `<i data-lucide="flask-conical" class="w-4 h-4"></i><span>🧪 Run Return-to-Service Test Simulation</span>`;
+          rtsBtn.className = 'w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer';
+        }
+      }
+
+      document.getElementById('techActionName').innerText = trace.corrective_recommendation.recommended_action;
+      document.getElementById('techSeverityBadge').innerText = trace.corrective_recommendation.estimated_severity + ' SEVERITY';
+      document.getElementById('techSeverityBadge').className = 'px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200';
+      
+      currentStageSteps = [...trace.corrective_recommendation.specific_steps];
+      renderTechnicianChecklist();
+
+      document.getElementById('techDoNotDoList').innerHTML = trace.corrective_recommendation.do_not_do.map(d => `<li>${d}</li>`).join('');
+
+
+      // 8. Building Manager View
+      document.getElementById('mgrSummaryText').innerText = trace.building_manager_view.summary;
+      document.getElementById('mgrDowntimeText').innerText = trace.building_manager_view.expected_downtime;
+      document.getElementById('mgrSafetyText').innerText = trace.building_manager_view.safety_status;
+
+      // 9. Document Report View
+      if (trace.detailed_investigation_report) {
+        document.getElementById('reportDocumentPaper').innerHTML = renderMarkdownReport(trace.detailed_investigation_report);
+      }
+
+      // 10. Populate Full Root Cause Guidance Modal
+      const modalTitleEl = document.getElementById('guidanceModalTitle');
+      if (modalTitleEl) modalTitleEl.innerText = trace.rca_conclusion.abstained ? 'Inconclusive (Abstained)' : topH.root_cause;
+      
+      const modalConfEl = document.getElementById('guidanceModalConfidence');
+      if (modalConfEl) modalConfEl.innerText = `${Math.round(trace.rca_conclusion.root_cause_confidence * 100)}% (${trace.rca_conclusion.root_cause_confidence_tier})`;
+
+      const modalActionEl = document.getElementById('guidanceActionName');
+      if (modalActionEl) modalActionEl.innerText = trace.corrective_recommendation.recommended_action;
+
+      const modalSevEl = document.getElementById('guidanceSeverityBadge');
+      if (modalSevEl) modalSevEl.innerText = trace.corrective_recommendation.estimated_severity + ' SEVERITY';
+
+      const modalStepsEl = document.getElementById('guidanceStepsList');
+      if (modalStepsEl) {
+        const modalSteps = trace.corrective_recommendation.specific_steps || [];
+        modalStepsEl.innerHTML = modalSteps.map((s, idx) => `
+          <div class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 flex items-start space-x-2.5">
+            <span class="w-5 h-5 rounded-full bg-kone-500 text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
+            <span class="text-slate-800 font-medium leading-snug">${s}</span>
+          </div>
+        `).join('');
+      }
+
+      const modalDoNotEl = document.getElementById('guidanceDoNotDoList');
+      if (modalDoNotEl) {
+        modalDoNotEl.innerHTML = trace.corrective_recommendation.do_not_do.map(d => `<li>${d}</li>`).join('');
+      }
+
+      const modalReportPaper = document.getElementById('guidanceReportPaper');
+      if (modalReportPaper && trace.detailed_investigation_report) {
+        modalReportPaper.innerHTML = renderMarkdownReport(trace.detailed_investigation_report);
+      }
+
+      const modalNarrative = document.getElementById('guidanceCausalNarrative');
+      if (modalNarrative) modalNarrative.innerText = trace.rca_conclusion.causal_narrative;
+
+      const modalSupporting = document.getElementById('guidanceSupportingEvidence');
+      if (modalSupporting && topH.supporting_evidence) {
+        modalSupporting.innerHTML = topH.supporting_evidence.map(se => `
+          <div class="p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 font-medium flex items-center space-x-2">
+            <span class="font-bold text-emerald-700 font-mono text-[10px]">[+]</span>
+            <span>${se.evidence}</span>
+          </div>
+        `).join('') || '<div class="text-slate-400">No supporting evidence logged.</div>';
+      }
+
+      const modalIncId = document.getElementById('guidanceIncidentId');
+      if (modalIncId) modalIncId.innerText = trace.investigation_id || currentIncidentId;
+
+      // Update EWMA & CUSUM Tracking Strip
+      updateEwmaCusumPanel(trace);
+
+      // Re-create icons
+      lucide.createIcons();
+    }
+
+    function renderMarkdownReport(md) {
+      if (!md) return '<p class="text-slate-400">No report available.</p>';
+      
+      const lines = md.split('\n');
+      let html = '';
+      let inTable = false;
+      let tableRows = [];
+
+      for (let line of lines) {
+        line = line.trim();
+
+        // Tables
+        if (line.startsWith('|') && line.endsWith('|')) {
+          if (line.includes('---')) continue; // Skip delimiter row
+          const cols = line.split('|').slice(1, -1).map(c => c.trim());
+          tableRows.push(cols);
+          inTable = true;
+          continue;
+        } else if (inTable) {
+          // Flush table
+          html += '<div class="overflow-x-auto my-3 border border-slate-200 rounded-lg"><table class="w-full text-left text-[11px] border-collapse">';
+          tableRows.forEach((row, idx) => {
+            const isHeader = (idx === 0);
+            html += `<tr class="${isHeader ? 'bg-slate-100 font-bold text-slate-800' : 'hover:bg-slate-50 border-t border-slate-200'}">`;
+            row.forEach(cell => {
+              // Parse bold and code in cell
+              let formatted = cell.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-kone-600 font-mono text-[10px]">$1</code>');
+              html += `<td class="p-2 border-r border-slate-200 last:border-r-0">${formatted}</td>`;
+            });
+            html += '</tr>';
+          });
+          html += '</table></div>';
+          inTable = false;
+          tableRows = [];
+        }
+
+        if (!line) {
+          html += '<div class="h-2"></div>';
+          continue;
+        }
+
+        if (line.startsWith('# ')) {
+          html += `<h1 class="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3 mt-1 flex items-center space-x-2"><span class="text-kone-600">■</span><span>${line.substring(2)}</span></h1>`;
+        } else if (line.startsWith('## ')) {
+          html += `<h2 class="text-sm font-bold text-slate-900 mt-4 mb-2 bg-slate-50 p-2 rounded-lg border-l-4 border-l-kone-500">${line.substring(3)}</h2>`;
+        } else if (line.startsWith('### ')) {
+          html += `<h3 class="text-xs font-bold text-slate-800 mt-3 mb-1 font-mono">${line.substring(4)}</h3>`;
+        } else if (line.startsWith('#### ')) {
+          html += `<h4 class="text-xs font-bold text-slate-700 mt-2 mb-1">${line.substring(5)}</h4>`;
+        } else if (line.startsWith('- ')) {
+          let formatted = line.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-kone-600 font-mono text-[10px]">$1</code>');
+          html += `<div class="flex items-start space-x-2 my-1"><span class="text-kone-500 font-bold">•</span><span class="text-slate-700 leading-snug">${formatted}</span></div>`;
+        } else if (/^\d+\.\s/.test(line)) {
+          let formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-kone-600 font-mono text-[10px]">$1</code>');
+          html += `<div class="p-2 my-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium">${formatted}</div>`;
+        } else if (line === '---') {
+          html += '<hr class="border-slate-200 my-4" />';
+        } else {
+          let formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-kone-600 font-mono text-[10px]">$1</code>');
+          html += `<p class="my-1 text-slate-700 leading-relaxed font-medium">${formatted}</p>`;
+        }
+      }
+
+      return html;
+    }
+
+    // Update EWMA & CUSUM Anomaly Tracking Panel
+    function updateEwmaCusumPanel(trace) {
+      if (!trace || !trace.evidence_bundle) return;
+
+      const measuredItems = trace.evidence_bundle.filter(e => e.provenance === 'MEASURED');
+      const badQualityItems = trace.evidence_bundle.filter(e => e.quality === 'bad' || e.quality === 'missing');
+      
+      let maxZ = 0.0;
+      let driftDetected = false;
+      let signalCardsHtml = '';
+
+      measuredItems.forEach(item => {
+        let zScore = 0.0;
+        let isDrift = false;
+        let valText = item.value || '';
+        
+        const devMatch = valText.match(/\(([+-]?\d+\.?\d*)%/);
+        if (devMatch) {
+          const dev = Math.abs(parseFloat(devMatch[1]));
+          zScore = parseFloat((dev / 12.0).toFixed(2));
+        } else if (valText.includes('SPIKE') || valText.includes('ELEVATED')) {
+          zScore = 4.25;
+        } else if (valText.includes('NORMAL')) {
+          zScore = 0.35;
+        }
+
+        if (zScore > maxZ) maxZ = zScore;
+        if (zScore >= 3.0 || valText.includes('DRIFT') || valText.includes('SPIKE')) {
+          isDrift = true;
+          driftDetected = true;
+        }
+
+        const isAnomaly = zScore >= 3.0;
+        const zColor = isAnomaly ? 'text-rose-400 font-bold' : (zScore >= 1.5 ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold');
+        const driftColor = isDrift ? 'text-rose-400' : 'text-slate-400';
+        const qualityBadge = item.quality === 'good' 
+          ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">GOOD</span>'
+          : '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">GATED OUT</span>';
+
+        signalCardsHtml += `
+          <div class="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 space-y-1 hover:border-slate-600 transition">
+            <div class="flex items-center justify-between">
+              <span class="font-mono font-bold text-slate-200 truncate" title="${item.signal_or_record}">${item.signal_or_record}</span>
+              ${qualityBadge}
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono truncate">${item.value}</div>
+            <div class="flex items-center justify-between pt-1 border-t border-slate-700/60 text-[10px]">
+              <span class="text-slate-400">EWMA: <strong class="${zColor}">${zScore.toFixed(2)} &sigma;</strong></span>
+              <span class="${driftColor} font-mono font-bold">${isDrift ? 'DRIFT &gt; h' : 'IN-CONTROL'}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      const maxZEl = document.getElementById('ewmaMaxZScore');
+      if (maxZEl) {
+        maxZEl.innerText = `${maxZ.toFixed(2)} \u03c3`;
+        maxZEl.className = `text-sm font-black font-mono ${maxZ >= 3.0 ? 'text-rose-400 animate-pulse' : (maxZ >= 1.5 ? 'text-amber-400' : 'text-emerald-400')}`;
+      }
+
+      const driftEl = document.getElementById('cusumDriftFlag');
+      if (driftEl) {
+        driftEl.innerText = driftDetected ? 'DRIFT FLAGGED' : 'IN CONTROL';
+        driftEl.className = `text-sm font-black font-mono ${driftDetected ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`;
+      }
+
+      const qualityEl = document.getElementById('sensorQualitySummary');
+      if (qualityEl) {
+        if (badQualityItems.length > 0) {
+          qualityEl.innerText = `${badQualityItems.length} SENSOR(S) GATED`;
+          qualityEl.className = 'text-sm font-black font-mono text-amber-400';
+        } else {
+          qualityEl.innerText = '100% RELIABLE';
+          qualityEl.className = 'text-sm font-black font-mono text-emerald-400';
+        }
+      }
+
+      const statusBadge = document.getElementById('ewmaCusumStatusBadge');
+      if (statusBadge) {
+        if (maxZ >= 3.0 || driftDetected) {
+          statusBadge.innerText = 'ANOMALY ISOLATED';
+          statusBadge.className = 'px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse';
+        } else {
+          statusBadge.innerText = 'NOMINAL MONITORING';
+          statusBadge.className = 'px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        }
+      }
+
+      const signalList = document.getElementById('ewmaCusumSignalList');
+      if (signalList) {
+        signalList.innerHTML = signalCardsHtml || '<div class="text-slate-400 col-span-4 italic">No measured telemetry recorded.</div>';
+      }
+    }
+
+    // Closed-Loop Diagnostic Case Management Logic
+    let activeDiagnosticCase = null;
+
+    function toggleClosedLoopCaseModal(show) {
+      const modal = document.getElementById('closedLoopCaseModal');
+      if (modal) modal.classList.toggle('hidden', !show);
+      if (show && window.lucide) window.lucide.createIcons();
+    }
+
+    async function startCanonicalDemoCase() {
+      try {
+        const payload = {
+          asset_id: "ELEV-DX-04",
+          subsystem: "Door",
+          symptoms: ["Door closing timeout", "Increased cycle time (4.8s)", "Vibration during travel"],
+          active_faults: ["E501 Door Close Timeout"],
+          configuration: {
+            model: "KONE MonoSpace DX",
+            controller: "KXC Standard",
+            machine_type: "Gearless Traction (EcoDisc)",
+            door_operator: "Belt-Driven Linear Operator",
+            egov: "A"
+          }
+        };
+
+        const res = await fetch('/api/v1/cases', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Failed to create diagnostic case');
+        activeDiagnosticCase = await res.json();
+        renderCaseState(activeDiagnosticCase);
+        alert(`Diagnostic Case Created!\nCase ID: ${activeDiagnosticCase.case_id}\nIteration: ${activeDiagnosticCase.iteration} (RCA_PROPOSED)`);
+      } catch (err) {
+        alert('Error starting canonical demo case: ' + err.message);
+      }
+    }
+
+    async function startCaseFromCurrentIncident() {
+      try {
+        const assetId = (currentTrace && currentTrace.elevator_id) ? currentTrace.elevator_id : 'KONE-ASSET-01';
+        const subsystem = (currentTrace && currentTrace.fault_episode && currentTrace.fault_episode.primary_alarm) 
+          ? currentTrace.fault_episode.primary_alarm.subsystem 
+          : 'drive_motor';
+        const alarmCode = (currentTrace && currentTrace.fault_episode && currentTrace.fault_episode.primary_alarm)
+          ? currentTrace.fault_episode.primary_alarm.alarm_code
+          : 'ALM-UNKNOWN';
+
+        const payload = {
+          asset_id: assetId,
+          subsystem: subsystem,
+          symptoms: [`Telemetry fault observed on ${subsystem}`, `Primary trigger: ${alarmCode}`],
+          active_faults: [alarmCode],
+          configuration: {
+            model: "KONE MonoSpace 500",
+            controller: "KXC Standard",
+            machine_type: "Gearless Traction (EcoDisc)",
+            door_operator: "Linear Operator"
+          }
+        };
+
+        const res = await fetch('/api/v1/cases', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Failed to create case from incident');
+        activeDiagnosticCase = await res.json();
+        renderCaseState(activeDiagnosticCase);
+        alert(`Case created from current incident!\nCase ID: ${activeDiagnosticCase.case_id}`);
+      } catch (err) {
+        alert('Error creating case: ' + err.message);
+      }
+    }
+
+    async function loadCaseById(caseId) {
+      if (!caseId) {
+        alert('Please enter a valid Case ID.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/v1/cases/${encodeURIComponent(caseId.trim())}`);
+        if (!res.ok) throw new Error('Case not found');
+        activeDiagnosticCase = await res.json();
+        renderCaseState(activeDiagnosticCase);
+      } catch (err) {
+        alert('Could not load case: ' + err.message);
+      }
+    }
+
+    function renderCaseState(c) {
+      if (!c) return;
+      activeDiagnosticCase = c;
+
+      // Header fields
+      document.getElementById('caseActiveId').innerText = c.case_id;
+      document.getElementById('caseAssetId').innerText = c.asset_id;
+      document.getElementById('caseIterationBadge').innerText = c.iteration;
+      
+      const phaseBadge = document.getElementById('casePhaseBadge');
+      if (phaseBadge) {
+        phaseBadge.innerText = c.status;
+        if (c.status === 'CLOSED') {
+          phaseBadge.className = 'px-2.5 py-0.5 rounded text-[11px] font-black font-mono bg-emerald-500 text-white border border-emerald-400';
+        } else if (c.status === 'CORRECTIVE_ACTION' || c.status === 'RCA_REVISED') {
+          phaseBadge.className = 'px-2.5 py-0.5 rounded text-[11px] font-black font-mono bg-indigo-500 text-white border border-indigo-400';
+        } else {
+          phaseBadge.className = 'px-2.5 py-0.5 rounded text-[11px] font-black font-mono bg-amber-500 text-slate-900 border border-amber-400';
+        }
+      }
+
+      // Update Stepper
+      const steps = [
+        { col: 'stepCol_1', active: c.iteration >= 1 },
+        { col: 'stepCol_2', active: c.iteration >= 2 },
+        { col: 'stepCol_3', active: c.iteration >= 3 },
+        { col: 'stepCol_4', active: c.status === 'CLOSED' || c.iteration >= 4 },
+        { col: 'stepCol_5', active: c.status === 'CLOSED' }
+      ];
+
+      steps.forEach((s) => {
+        const el = document.getElementById(s.col);
+        if (!el) return;
+        if (s.active) {
+          el.className = 'p-2.5 rounded-lg border-2 border-kone-500 bg-kone-50 text-kone-700 transition font-bold';
+        } else {
+          el.className = 'p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition font-bold';
+        }
+      });
+
+      // Hypotheses Table
+      const tbody = document.getElementById('caseHypothesesTableBody');
+      const countBadge = document.getElementById('caseHypoCountBadge');
+      if (countBadge) countBadge.innerText = `${(c.hypotheses || []).length} Hypotheses Active`;
+
+      if (tbody) {
+        if (!c.hypotheses || c.hypotheses.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">No hypotheses evaluated.</td></tr>`;
+        } else {
+          let rowsHtml = '';
+          c.hypotheses.forEach(h => {
+            const priorPct = h.prior_probability ? `${Math.round(h.prior_probability * 100)}%` : '20%';
+            const postPct = (h.posterior_probability !== null && h.posterior_probability !== undefined) 
+              ? `${Math.round(h.posterior_probability * 100)}%` 
+              : priorPct;
+
+            let stateBadge = '';
+            if (h.state === 'CONFIRMED') {
+              stateBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">CONFIRMED</span>';
+            } else if (h.state === 'RULED_OUT') {
+              stateBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-300">RULED OUT</span>';
+            } else if (h.state === 'SUPPORTED' || h.state === 'ACTIVE') {
+              stateBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 border border-indigo-300">SUPPORTED</span>';
+            } else {
+              stateBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">${h.state}</span>`;
+            }
+
+            const reasoning = h.reasoning || (h.contradicting_evidence.length > 0 ? `Contradicted: ${h.contradicting_evidence.join(', ')}` : (h.supporting_evidence.join(', ') || '-'));
+
+            rowsHtml += `
+              <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-2.5 font-mono font-bold text-slate-900">${h.hypothesis_id}</td>
+                <td class="p-2.5 font-bold text-slate-800">${h.component} <span class="text-slate-500 font-normal">(${h.failure_mode})</span></td>
+                <td class="p-2.5 text-center font-mono font-semibold text-slate-600">${priorPct}</td>
+                <td class="p-2.5 text-center font-mono font-black ${h.state === 'RULED_OUT' ? 'text-rose-600' : 'text-emerald-700'}">${postPct}</td>
+                <td class="p-2.5">${stateBadge}</td>
+                <td class="p-2.5 text-slate-600 text-[11px] leading-tight max-w-xs truncate" title="${reasoning}">${reasoning}</td>
+              </tr>
+            `;
+          });
+          tbody.innerHTML = rowsHtml;
+        }
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function fillCanonicalFeedback() {
+      const input = document.getElementById('caseFeedbackInput');
+      if (input) {
+        input.value = "I inspected the roller: there is no visible wear and it rotates freely. The door becomes harder to move near fully closed with mechanical resistance.";
+      }
+    }
+
+    async function submitCaseTechnicianFeedback() {
+      if (!activeDiagnosticCase) {
+        alert('Please create or load a diagnostic case first.');
+        return;
+      }
+      const feedback = document.getElementById('caseFeedbackInput').value;
+      if (!feedback) {
+        alert('Please enter technician field observation notes.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/v1/cases/${activeDiagnosticCase.case_id}/technician-feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedback_text: feedback })
+        });
+        if (!res.ok) throw new Error('Feedback submission failed');
+        activeDiagnosticCase = await res.json();
+        renderCaseState(activeDiagnosticCase);
+        alert(`Technician observation processed!\nStatus: ${activeDiagnosticCase.status}\nIteration: ${activeDiagnosticCase.iteration}\nBayesian posteriors revised.`);
+      } catch (err) {
+        alert('Error submitting feedback: ' + err.message);
+      }
+    }
+
+    function fillCanonicalTestResult() {
+      document.getElementById('caseTestIdInput').value = 'TEST-TRACK-01';
+      document.getElementById('caseTestOutcomeSelect').value = 'FAIL';
+      document.getElementById('caseTestNotesInput').value = 'Grit and construction dust found accumulated in landing door sill track groove.';
+    }
+
+    async function submitCaseTestResult() {
+      if (!activeDiagnosticCase) {
+        alert('Please create or load a diagnostic case first.');
+        return;
+      }
+      const testId = document.getElementById('caseTestIdInput').value;
+      const outcome = document.getElementById('caseTestOutcomeSelect').value;
+      const notes = document.getElementById('caseTestNotesInput').value;
+
+      try {
+        const res = await fetch(`/api/v1/cases/${activeDiagnosticCase.case_id}/diagnostic-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ test_id: testId, outcome: outcome, notes: notes })
+        });
+        if (!res.ok) throw new Error('Test recording failed');
+        activeDiagnosticCase = await res.json();
+        renderCaseState(activeDiagnosticCase);
+        alert(`Diagnostic confirmation test recorded!\nOutcome: ${outcome}\nRoot cause confirmed: ${activeDiagnosticCase.current_root_cause || 'Confirmed'}`);
+      } catch (err) {
+        alert('Error recording diagnostic test: ' + err.message);
+      }
+    }
+
+    function fillCanonicalValidation() {
+      document.getElementById('caseValFaultCleared').checked = true;
+      document.getElementById('caseValCyclesPassed').value = 5;
+      document.getElementById('caseValNotes').value = 'Sill vacuumed and lubricated. 5 test cycles passed with nominal closing time (2.8s).';
+    }
+
+    async function submitCaseValidationCheck() {
+      if (!activeDiagnosticCase) {
+        alert('Please create or load a diagnostic case first.');
+        return;
+      }
+      const cleared = document.getElementById('caseValFaultCleared').checked;
+      const cycles = parseInt(document.getElementById('caseValCyclesPassed').value) || 5;
+      const notes = document.getElementById('caseValNotes').value;
+
+      try {
+        const res = await fetch(`/api/v1/cases/${activeDiagnosticCase.case_id}/post-repair-validation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fault_cleared: cleared,
+            cycles_passed: cycles,
+            recurrence_observed: false,
+            notes: notes
+          })
+        });
+        if (!res.ok) throw new Error('Validation submission failed');
+        activeDiagnosticCase = await res.json();
+        renderCaseState(activeDiagnosticCase);
+        alert(`Post-repair validation accepted!\nCase Status: ${activeDiagnosticCase.status}\nReady for final 21-section engineering audit report.`);
+        await fetchCaseReport();
+      } catch (err) {
+        alert('Error submitting validation: ' + err.message);
+      }
+    }
+
+    async function fetchCaseReport() {
+      if (!activeDiagnosticCase) {
+        alert('Please create or load a diagnostic case first.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/v1/cases/${activeDiagnosticCase.case_id}/report`);
+        if (!res.ok) throw new Error('Report generation failed');
+        const data = await res.json();
+        const paper = document.getElementById('caseReportPaper');
+        if (paper) {
+          paper.innerHTML = renderMarkdownReport(data.report_markdown);
+        }
+      } catch (err) {
+        alert('Error fetching report: ' + err.message);
+      }
+    }
+
+    function copyCaseReportMarkdown() {
+      const paper = document.getElementById('caseReportPaper');
+      if (!paper) return;
+      navigator.clipboard.writeText(paper.innerText).then(() => {
+        alert('21-Section Audit Report copied to clipboard!');
+      }).catch(err => {
+        alert('Could not copy report: ' + err.message);
+      });
+    }
+
+    // View Switcher
+    function switchView(tab) {
+      const techView = document.getElementById('technicianViewContent');
+      const docView = document.getElementById('documentViewContent');
+      const mgrView = document.getElementById('managerViewContent');
+
+      const techBtn = document.getElementById('tabTechBtn');
+      const docBtn = document.getElementById('tabDocBtn');
+      const mgrBtn = document.getElementById('tabMgrBtn');
+
+      [techView, docView, mgrView].forEach(v => v.classList.add('hidden'));
+      [techBtn, docBtn, mgrBtn].forEach(b => {
+        b.classList.remove('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+        b.classList.add('text-slate-600', 'border-transparent', 'font-semibold');
+      });
+
+      if (tab === 'technician') {
+        techView.classList.remove('hidden');
+        techBtn.classList.add('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+      } else if (tab === 'document') {
+        docView.classList.remove('hidden');
+        docBtn.classList.add('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+      } else {
+        mgrView.classList.remove('hidden');
+        mgrBtn.classList.add('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+      }
+    }
+
+    // Root Cause Guidance & Investigation Dossier Modal
+    function toggleGuidanceModal(show) {
+      const modal = document.getElementById('rootCauseGuidanceModal');
+      if (modal) modal.classList.toggle('hidden', !show);
+    }
+
+    function openRootCauseGuidanceModal(targetCause) {
+      if (!currentTrace) return;
+      toggleGuidanceModal(true);
+      switchGuidanceModalTab('sop');
+    }
+
+    function switchGuidanceModalTab(tab) {
+      const sopView = document.getElementById('guidanceViewSop');
+      const repView = document.getElementById('guidanceViewReport');
+      const phyView = document.getElementById('guidanceViewPhysics');
+
+      const sopBtn = document.getElementById('guidanceTabSopBtn');
+      const repBtn = document.getElementById('guidanceTabReportBtn');
+      const phyBtn = document.getElementById('guidanceTabPhysicsBtn');
+
+      [sopView, repView, phyView].forEach(v => {
+        if (v) v.classList.add('hidden');
+      });
+
+      [sopBtn, repBtn, phyBtn].forEach(b => {
+        if (b) {
+          b.classList.remove('bg-white', 'text-kone-600', 'font-bold', 'shadow-xs');
+          b.classList.add('text-slate-600', 'font-semibold');
+        }
+      });
+
+      if (tab === 'sop' && sopView && sopBtn) {
+        sopView.classList.remove('hidden');
+        sopBtn.classList.add('bg-white', 'text-kone-600', 'font-bold', 'shadow-xs');
+      } else if (tab === 'report' && repView && repBtn) {
+        repView.classList.remove('hidden');
+        repBtn.classList.add('bg-white', 'text-kone-600', 'font-bold', 'shadow-xs');
+      } else if (phyView && phyBtn) {
+        phyView.classList.remove('hidden');
+        phyBtn.classList.add('bg-white', 'text-kone-600', 'font-bold', 'shadow-xs');
+      }
+    }
+
+    function printReportDocument() {
+      if (!currentTrace || !currentTrace.detailed_investigation_report) {
+        alert('No report available to print.');
+        return;
+      }
+      const printWin = window.open('', '_blank');
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>RCA Engineering Investigation Report - ${currentTrace.investigation_id}</title>
+          <script src="https://cdn.tailwindcss.com"><\/script>
+          <style>
+            @media print { body { padding: 20px; font-size: 11px; } }
+          </style>
+        </head>
+        <body class="p-8 max-w-4xl mx-auto font-sans text-slate-900 bg-white">
+          <div class="mb-4 flex justify-between items-center border-b pb-2">
+            <span class="text-xs font-bold text-slate-500">KONE ElevateRCA Engineering Report</span>
+            <button onclick="window.print()" class="px-3 py-1 bg-blue-600 text-white font-bold rounded text-xs no-print">Print Dossier</button>
+          </div>
+          ${document.getElementById('reportDocumentPaper').innerHTML}
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+      setTimeout(() => printWin.print(), 500);
+    }
+
+    function copyReportMarkdown() {
+      if (!currentTrace || !currentTrace.detailed_investigation_report) {
+        alert('No report text available.');
+        return;
+      }
+      navigator.clipboard.writeText(currentTrace.detailed_investigation_report)
+        .then(() => alert('Full Investigation Report (Markdown) copied to clipboard!'))
+        .catch(err => alert('Copy failed: ' + err.message));
+    }
+
+    // Modal
+    function toggleModal(show) {
+      document.getElementById('jsonModal').classList.toggle('hidden', !show);
+    }
+    document.getElementById('customJsonBtn').onclick = () => toggleModal(true);
+
+    // Human Review Action
+    async function submitReview(decision) {
+      if (!currentTrace) return;
+      const note = prompt(`Enter technician notes for decision '${decision}':`, `Diagnostic verified, OEM steps completed by senior field specialist.`);
+      if (note === null) return;
+
+      try {
+        const res = await fetch('/api/v1/human-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            investigation_id: currentTrace.investigation_id,
+            decision: decision,
+            technician_name: 'Senior Field Specialist',
+            technician_badge: 'KONE-SPEC-9024',
+            notes: note
+          })
+        });
+        const result = await res.json();
+        
+        // Show in audit log
+        document.getElementById('auditLogPreview').classList.remove('hidden');
+        const auditList = document.getElementById('auditLogList');
+        auditList.innerHTML += `
+          <div class="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between">
+            <div>
+              <span class="font-bold text-slate-800">[${decision}]</span> by <span class="text-kone-600 font-bold">KONE-SPEC-9024</span>: "${note}"
+            </div>
+            <span class="text-[10px] text-slate-400">${new Date().toLocaleTimeString()}</span>
+          </div>
+        `;
+        alert(`Work Order Committed!\nDecision: ${decision}\nStatus: ${result.message}`);
+      } catch (err) {
+        alert('Error saving audit log: ' + err.message);
+      }
+    }
+
+    // Error Matrix Management
+    let matrixData = null;
+    let selectedMatrixError = null;
+
+    function toggleErrorMatrixModal(show) {
+      document.getElementById('errorMatrixModal').classList.toggle('hidden', !show);
+      if (show && !matrixData) {
+        populateErrorMatrix();
+      }
+    }
+
+    async function populateErrorMatrix() {
+      try {
+        const res = await fetch('/api/v1/error-matrix');
+        if (!res.ok) return;
+        matrixData = await res.json();
+        
+        const ranks = ["F1", "F2", "F3", "F4", "F5", "F6", "F7"];
+        const cols = [1, 2, 3, 4, 5, 6, 7, 8];
+        const tbody = document.getElementById('errorMatrixBody');
+        tbody.innerHTML = '';
+
+        // Index error codes by rank and col
+        const lookup = {};
+        (matrixData.error_codes || []).forEach(err => {
+          lookup[`${err.rank}_${err.col}`] = err;
+        });
+
+        ranks.forEach(rank => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition border-b border-slate-200';
+          
+          let rowHtml = `<td class="p-2.5 font-bold text-slate-800 bg-slate-50 border-r border-slate-200">${rank}</td>`;
+          cols.forEach(col => {
+            const err = lookup[`${rank}_${col}`];
+            if (err) {
+              const isCrit = (err.severity === 'CRITICAL');
+              const textColor = isCrit ? 'text-rose-600 font-bold' : 'text-kone-600 font-semibold';
+              const bgHover = isCrit ? 'hover:bg-rose-50' : 'hover:bg-kone-50';
+              rowHtml += `
+                <td class="p-2 border-r border-slate-200 cursor-pointer ${bgHover} transition" onclick="selectMatrixCode('${err.code}')">
+                  <div class="text-[10px] ${textColor} leading-tight">${err.title}</div>
+                  <div class="text-[9px] text-slate-400 font-mono mt-0.5">${err.code}</div>
+                </td>
+              `;
+            } else {
+              rowHtml += `<td class="p-2 border-r border-slate-200 text-slate-300 text-[10px]">-</td>`;
+            }
+          });
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+        });
+
+        // Auto select first code F14
+        selectMatrixCode('F14');
+      } catch (err) {
+        console.error('Error populating matrix:', err);
+      }
+    }
+
+    function selectMatrixCode(code) {
+      if (!matrixData || !matrixData.error_codes) return;
+      const err = matrixData.error_codes.find(e => e.code === code);
+      if (!err) return;
+      selectedMatrixError = err;
+
+      document.getElementById('matErrorCode').innerText = err.code;
+      document.getElementById('matErrorTitle').innerText = err.title;
+      document.getElementById('matErrorSeverity').innerText = err.severity;
+      document.getElementById('matErrorSeverity').className = `px-2 py-0.5 rounded text-[10px] font-bold ${err.severity === 'CRITICAL' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`;
+      document.getElementById('matErrorDesc').innerText = err.description;
+      document.getElementById('matErrorCause').innerText = err.typical_cause;
+      document.getElementById('matErrorSop').innerText = err.sop;
+    }
+
+    async function analyzeMatrixCode() {
+      if (!selectedMatrixError) return;
+      
+      // Map error code to best matching sample payload
+      const code = selectedMatrixError.code;
+      let filename = 'telemetry_01_drive_igbt_short_circuit.json';
+      
+      if (code === 'F14' || code === 'F24' || code === 'F34' || code === 'F54' || code === 'F64') {
+        filename = 'telemetry_11_door_repeat_roller_misdiagnosis_track_misalignment.json';
+      } else if (code === 'F15' || code === 'F25' || code === 'F45') {
+        filename = 'telemetry_01_drive_igbt_short_circuit.json';
+      } else if (code === 'F52' || code === 'F22' || code === 'F32') {
+        filename = 'telemetry_31_encoder_pulse_loss_leveling_fault.json';
+      } else if (code === 'F11' || code === 'F17' || code === 'F21') {
+        filename = 'telemetry_41_safety_door_lock_loop_break.json';
+      } else {
+        filename = 'telemetry_02_drive_mechanical_jam.json';
+      }
+
+      try {
+        const res = await fetch(`/api/v1/telemetry-samples/${filename}`);
+        if (!res.ok) throw new Error('Sample not found');
+        const data = await res.json();
+        data.technician_free_text = `Controller Error Table Code ${selectedMatrixError.code}: ${selectedMatrixError.title}. ${selectedMatrixError.description}`;
+        await analyzeCustomPayload(data);
+        toggleErrorMatrixModal(false);
+      } catch (err) {
+        alert('Analysis error: ' + err.message);
+      }
+    }
+
+    // OEM Guides & Troubleshooting Dataset Management
+    let oemData = null;
+
+    function toggleOemGuidesModal(show) {
+      document.getElementById('oemGuidesModal').classList.toggle('hidden', !show);
+      if (show && !oemData) {
+        populateOemRecords();
+      }
+    }
+
+    async function populateOemRecords() {
+      try {
+        const res = await fetch('/api/v1/oem-guides');
+        if (!res.ok) return;
+        oemData = await res.json();
+        renderOemTable(oemData.troubleshooting_records || []);
+      } catch (err) {
+        console.error('Error loading OEM records:', err);
+      }
+    }
+
+    function renderOemTable(records) {
+      const tbody = document.getElementById('oemRecordsBody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = records.map(r => {
+        const prioBadge = r.priority === 'Critical' 
+          ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">CRITICAL</span>'
+          : (r.priority === 'High' 
+             ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">HIGH</span>'
+             : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">MEDIUM</span>');
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-2.5 font-bold font-mono text-kone-600">${r.id}</td>
+            <td class="p-2.5 font-semibold text-slate-800">${r.component}</td>
+            <td class="p-2.5 text-slate-600">${r.symptom}</td>
+            <td class="p-2.5 font-medium text-slate-500">${r.root_cause_category}</td>
+            <td class="p-2.5">${prioBadge}</td>
+            <td class="p-2.5 text-right">
+              <button onclick="analyzeOemCase('${r.id}')" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-kone-50 hover:bg-kone-100 text-kone-600 border border-kone-200 transition">
+                Analyze
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterOemRecords(query) {
+      if (!oemData || !oemData.troubleshooting_records) return;
+      const q = query.toLowerCase().trim();
+      const filtered = oemData.troubleshooting_records.filter(r => 
+        r.id.toLowerCase().includes(q) ||
+        r.component.toLowerCase().includes(q) ||
+        r.symptom.toLowerCase().includes(q) ||
+        r.possible_causes.toLowerCase().includes(q) ||
+        r.root_cause_category.toLowerCase().includes(q)
+      );
+      renderOemTable(filtered);
+    }
+
+    async function analyzeOemCase(caseId) {
+      if (!oemData || !oemData.troubleshooting_records) return;
+      const rec = oemData.troubleshooting_records.find(r => r.id === caseId);
+      if (!rec) return;
+
+      // Map troubleshooting record ID to closest sample telemetry file
+      const mapping = {
+        'ELV-001': 'telemetry_05_drive_seized_bearing.json',
+        'ELV-002': 'telemetry_02_drive_mechanical_jam.json',
+        'ELV-003': 'telemetry_21_brake_release_timing_delay.json',
+        'ELV-004': 'telemetry_22_brake_lining_wear_slip.json',
+        'ELV-005': 'telemetry_11_door_repeat_roller_misdiagnosis_track_misalignment.json',
+        'ELV-006': 'telemetry_15_door_lock_contact_pitting.json',
+        'ELV-007': 'telemetry_31_encoder_pulse_loss_leveling_fault.json',
+        'ELV-008': 'telemetry_01_drive_igbt_short_circuit.json',
+        'ELV-009': 'telemetry_03_drive_motor_winding_imbalance.json',
+        'ELV-010': 'telemetry_09_drive_motor_thermal_overload.json',
+        'ELV-011': 'telemetry_32_encoder_coupling_slippage.json',
+        'ELV-012': 'telemetry_27_brake_governor_overspeed_trip.json',
+        'ELV-013': 'telemetry_47_sensor_machine_room_thermal_stress.json',
+        'ELV-014': 'telemetry_24_traction_rope_wire_breaks.json',
+        'ELV-015': 'telemetry_41_safety_door_lock_loop_break.json'
+      };
+
+      const filename = mapping[caseId] || 'telemetry_01_drive_igbt_short_circuit.json';
+      try {
+        const res = await fetch(`/api/v1/telemetry-samples/${filename}`);
+        if (!res.ok) throw new Error('Sample file not found');
+        const data = await res.json();
+        data.technician_free_text = `OEM Case ${rec.id}: ${rec.symptom}. Possible Causes: ${rec.possible_causes}. Check: ${rec.maintenance_check}`;
+        await analyzeCustomPayload(data);
+        toggleOemGuidesModal(false);
+      } catch (err) {
+        alert('Analysis error: ' + err.message);
+      }
+    }
+
+    // Module Switcher between Diagnostics & Live Simulation
+    function switchMainModule(mod) {
+      const diagView = document.getElementById('diagnosticWorkspaceView');
+      const simView = document.getElementById('elevatorSimulationView');
+      const navDiag = document.getElementById('navModuleDiag');
+      const navSim = document.getElementById('navModuleSim');
+
+      if (mod === 'simulation') {
+        if (diagView) diagView.classList.add('hidden');
+        if (simView) simView.classList.remove('hidden');
+        if (navDiag) {
+          navDiag.classList.remove('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+          navDiag.classList.add('text-slate-600', 'border-transparent', 'font-semibold');
+        }
+        if (navSim) {
+          navSim.classList.add('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+          navSim.classList.remove('text-slate-600', 'border-transparent', 'font-semibold');
+        }
+        const sim = initElevatorSimulation();
+        if (sim) {
+          sim.renderShaftVisuals(sim.physics.currentY, sim.sensors);
+          sim.renderStatusCards();
+        }
+      } else {
+        if (simView) simView.classList.add('hidden');
+        if (diagView) diagView.classList.remove('hidden');
+        if (navSim) {
+          navSim.classList.remove('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+          navSim.classList.add('text-slate-600', 'border-transparent', 'font-semibold');
+        }
+        if (navDiag) {
+          navDiag.classList.add('text-kone-600', 'border-kone-500', 'bg-white', 'font-bold');
+          navDiag.classList.remove('text-slate-600', 'border-transparent', 'font-semibold');
+        }
+      }
+      setTimeout(() => {
+        if (window.lucide) window.lucide.createIcons();
+      }, 50);
+    }
+
+    // 1-Click Interactive Test Benchmarks for Judges
+    function runDemoExpressUp() {
+      resetElevatorSimulation();
+      setTimeout(() => {
+        callElevatorFloor(4);
+      }, 300);
+    }
+
+    function runDemoExpressDown() {
+      callElevatorFloor(0);
+    }
+
+    function runDemoEStopScenario() {
+      resetElevatorSimulation();
+      setTimeout(() => {
+        callElevatorFloor(3);
+        setTimeout(() => {
+          emergencyStopElevator();
+        }, 1200);
+      }, 300);
+    }
+
+    // Auto-load Door Problem Telemetry and populate samples on load
+    window.onload = () => {
+      initElevatorSimulation();
+      populateSampleDropdown();
+      populateErrorMatrix();
+      populateOemRecords();
+      loadAndAnalyzeDoorSample('telemetry_13_door_sill_physical_obstruction.json');
+    };
+  </script>
+</body>
+</html>

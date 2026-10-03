@@ -1,0 +1,163 @@
+# ElevateRCA — Alarm Code Reference Catalog (Part 9)
+
+alarms:
+  # DRIVE / MOTOR ALARMS
+  motor_overcurrent:
+    subsystem: "drive_motor"
+    severity: "critical"
+    description: "EcoDisc motor phase current exceeded inverter overcurrent trip limit"
+    is_root_candidate: true
+
+  drive_trip:
+    subsystem: "drive_motor"
+    severity: "critical"
+    description: "VFD inverter faulted and locked out"
+    is_root_candidate: false # Often consequential
+
+  igbt_fault:
+    subsystem: "drive_motor"
+    severity: "critical"
+    description: "IGBT desaturation or gate driver failure"
+    is_root_candidate: true
+
+  motor_overheat:
+    subsystem: "drive_motor"
+    severity: "warning"
+    description: "EcoDisc stator thermistor sensed elevated winding temperature"
+    is_root_candidate: true
+
+  phase_imbalance:
+    subsystem: "drive_motor"
+    severity: "warning"
+    description: "Phase current asymmetry between U, V, W exceeds threshold"
+    is_root_candidate: true
+
+  dc_bus_overvoltage:
+    subsystem: "drive_motor"
+    severity: "warning"
+    description: "VFD DC intermediate link voltage exceeded upper braking limit"
+    is_root_candidate: true
+
+  undervoltage:
+    subsystem: "drive_motor"
+    severity: "warning"
+    description: "Mains supply brownout or DC link voltage sag"
+    is_root_candidate: true
+
+  # DOOR ALARMS
+  door_close_timeout:
+    subsystem: "door"
+    severity: "critical"
+    description: "Door failed to fully close and lock within programmed time limit"
+    is_root_candidate: true
+
+  door_obstruction_detected:
+    subsystem: "door"
+    severity: "warning"
+    description: "Optical curtain or safety edge triggered reopen"
+    is_root_candidate: true
+
+  door_reopen_count_exceeded:
+    subsystem: "door"
+    severity: "warning"
+    description: "Nudging limit reached after repeated reopenings"
+    is_root_candidate: false
+
+  door_lock_not_confirmed:
+    subsystem: "door"
+    severity: "critical"
+    description: "Door mechanically closed but electrical interlock contact not made"
+    is_root_candidate: true
+
+  door_motor_overcurrent:
+    subsystem: "door"
+    severity: "warning"
+    description: "Door operator motor current peaked due to friction or blockage"
+    is_root_candidate: true
+
+  # BRAKE / TRACTION ALARMS
+  brake_fault:
+    subsystem: "brake_traction"
+    severity: "critical"
+    description: "Brake release or drop monitoring contact mismatch"
+    is_root_candidate: true
+
+  brake_timing_violation:
+    subsystem: "brake_traction"
+    severity: "critical"
+    description: "Brake lift delay exceeded nominal millisecond tolerance"
+    is_root_candidate: true
+
+  unintended_movement:
+    subsystem: "brake_traction"
+    severity: "critical"
+    description: "Car moved outside landing door zone with doors unlocked"
+    is_root_candidate: true
+
+  position_drift:
+    subsystem: "brake_traction"
+    severity: "warning"
+    description: "Car position drifted when brake was commanded closed"
+    is_root_candidate: false
+
+  rope_slip_detected:
+    subsystem: "brake_traction"
+    severity: "warning"
+    description: "Relative slip detected between traction sheave and suspension ropes"
+    is_root_candidate: true
+
+  # POSITION / ENCODER ALARMS
+  leveling_deviation:
+    subsystem: "encoder_position"
+    severity: "warning"
+    description: "Car stopped with floor sill leveling gap exceeding tolerance"
+    is_root_candidate: true
+
+  encoder_fault:
+    subsystem: "encoder_position"
+    severity: "critical"
+    description: "Pulse loss or quadrature phase error from EcoDisc encoder"
+    is_root_candidate: true
+
+  position_mismatch:
+    subsystem: "encoder_position"
+    severity: "warning"
+    description: "Shaft position vane count disagrees with encoder integration"
+    is_root_candidate: false
+
+  speed_feedback_error:
+    subsystem: "encoder_position"
+    severity: "warning"
+    description: "Speed deviation between commanded curve and encoder feedback"
+    is_root_candidate: false
+
+  # SAFETY CHAIN ALARMS
+  safety_chain_open:
+    subsystem: "safety_chain"
+    severity: "critical"
+    description: "Hardwired safety interlock circuit interrupted"
+    is_root_candidate: true
+
+  safety_circuit_trip:
+    subsystem: "safety_chain"
+    severity: "critical"
+    description: "Safety relay de-energized during car run"
+    is_root_candidate: false
+
+  emergency_stop_activated:
+    subsystem: "safety_chain"
+    severity: "critical"
+    description: "Manual or automated emergency stop contact open"
+    is_root_candidate: true
+
+  overspeed_detected:
+    subsystem: "safety_chain"
+    severity: "critical"
+    description: "Car speed exceeded tripping speed of governor"
+    is_root_candidate: true
+
+  buffer_activation:
+    subsystem: "safety_chain"
+    severity: "critical"
+    description: "Car or counterweight contacted terminal pit/overhead buffer switch"
+    is_root_candidate: true

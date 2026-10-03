@@ -10,7 +10,8 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+/dist/
+!dashboard/dist/
 downloads/
 eggs/
 .eggs/
@@ -38,6 +39,7 @@ venv.bak/
 *.sqlite3
 *.db
 chroma_data/
+.chroma_db/
 
 # Logs
 *.log
@@ -54,5 +56,5 @@ Thumbs.db
 
 # Node.js
 dashboard/node_modules/
-dashboard/dist/
 dashboard/.next/
+

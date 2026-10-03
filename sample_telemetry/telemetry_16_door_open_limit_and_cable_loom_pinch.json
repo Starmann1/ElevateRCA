@@ -1,0 +1,40 @@
+{
+  "elevator_id": "KONE-DOOR-206",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_OPEN",
+  "elevator_model": "KONE MonoSpace 500",
+  "installation_age_years": 4.3,
+  "verification_stage": "TWO_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_open_timeout",
+      "alarm_type": "door_open_timeout",
+      "severity": "warning",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:25:00.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_cycle_time_ms",
+      "value": 4900.0,
+      "unit": "ms",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:25:00.000Z",
+      "baseline_value": 2800.0,
+      "deviation_pct": 75.0
+    },
+    {
+      "signal_name": "door_motor_current",
+      "value": 2.4,
+      "unit": "A",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:25:00.000Z",
+      "baseline_value": 1.5,
+      "deviation_pct": 60.0
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "DOL switch circuit open. Visual inspection reveals flex cable pinched behind operator header bracket."
+}

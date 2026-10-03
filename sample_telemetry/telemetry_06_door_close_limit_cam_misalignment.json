@@ -1,0 +1,40 @@
+{
+  "elevator_id": "KONE-DOOR-106",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MonoSpace 500",
+  "installation_age_years": 3.4,
+  "verification_stage": "SINGLE_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_close_timeout",
+      "alarm_type": "door_close_timeout",
+      "severity": "warning",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T10:25:00.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_cycle_time_ms",
+      "value": 4600.0,
+      "unit": "ms",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:25:00.000Z",
+      "baseline_value": 2800.0,
+      "deviation_pct": 64.3
+    },
+    {
+      "signal_name": "door_motor_current",
+      "value": 2.1,
+      "unit": "A",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:25:00.000Z",
+      "baseline_value": 1.5,
+      "deviation_pct": 40.0
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "DCL cam mounting bracket loosened, causing late actuation after mechanical interlock contact engagement."
+}

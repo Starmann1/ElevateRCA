@@ -1,0 +1,57 @@
+{
+  "elevator_id": "KONE-DOOR-210",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MonoSpace 500",
+  "installation_age_years": 4.9,
+  "verification_stage": "TWO_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_lock_circuit_open",
+      "alarm_type": "door_lock_circuit_open",
+      "severity": "critical",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:45:00.000Z",
+      "state": "ACTIVE"
+    },
+    {
+      "alarm_code": "door_close_timeout",
+      "alarm_type": "door_close_timeout",
+      "severity": "warning",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:45:02.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_lock_confirmed",
+      "value": "FALSE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:45:00.000Z",
+      "baseline_value": "TRUE",
+      "deviation_pct": 0.0
+    },
+    {
+      "signal_name": "door_fully_closed",
+      "value": "TRUE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:45:00.000Z",
+      "baseline_value": "TRUE",
+      "deviation_pct": 0.0
+    },
+    {
+      "signal_name": "door_motor_current",
+      "value": 2.6,
+      "unit": "A",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:45:00.000Z",
+      "baseline_value": 1.5,
+      "deviation_pct": 73.3
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "Interlock locking hook engagement depth less than 7mm OEM minimum. Door sill guide shoe has lateral play."
+}

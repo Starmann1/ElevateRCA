@@ -1,0 +1,49 @@
+{
+  "elevator_id": "KONE-DOOR-102",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MiniSpace",
+  "installation_age_years": 3.0,
+  "verification_stage": "SINGLE_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_photoeye_obstruction",
+      "alarm_type": "door_photoeye_obstruction",
+      "severity": "warning",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T10:05:00.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_cycle_time_ms",
+      "value": 4200.0,
+      "unit": "ms",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:05:00.000Z",
+      "baseline_value": 2800.0,
+      "deviation_pct": 50.0
+    },
+    {
+      "signal_name": "photoeye_state_erratic",
+      "value": "TRUE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:05:00.000Z",
+      "baseline_value": "FALSE",
+      "deviation_pct": 0.0
+    },
+    {
+      "signal_name": "reopen_location_consistent",
+      "value": "FALSE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:05:00.000Z",
+      "baseline_value": "FALSE",
+      "deviation_pct": 0.0
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "Door intermittently reverses at varying random travel distances. Optical receiver shows heavy dust layer on lens."
+}

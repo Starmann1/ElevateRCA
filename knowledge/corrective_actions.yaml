@@ -1,0 +1,145 @@
+# ElevateRCA — Approved Corrective Actions Lookup Table
+# Adheres strictly to OEM Maintenance Procedures for KONE EcoDisc / MonoSpace
+
+actions:
+  INSPECT_AND_TEST_IGBT:
+    hypothesis_id: "RC1"
+    subsystem: "drive_motor"
+    action_name: "Inspect & Test VFD IGBT Inverter Module"
+    estimated_severity: "HIGH"
+    specific_steps:
+      - "Isolate drive from main 3-phase power and lock-out/tag-out (LOTO) per safety protocol."
+      - "Verify DC bus capacitors are fully discharged (< 50V) using a calibrated digital multimeter."
+      - "Measure IGBT gate-drive voltages and check VFD diagnostic log for gate driver fault history."
+      - "Perform diode check and insulation resistance test on all six IGBT arms and freewheeling diodes."
+      - "Inspect thermal interface compound and heat sink fins for thermal degradation or clogging."
+      - "If IGBT tests abnormal: replace VFD IGBT inverter module per KONE OEM procedure."
+    do_not_do:
+      - "Do NOT attempt to reset safety chain before physical electrical inspection."
+      - "Do NOT restart the drive without confirming IGBT gate and junction integrity."
+      - "Do NOT short out DC bus discharge resistors."
+
+  INSPECT_HOISTWAY_AND_GUIDE_RAILS:
+    hypothesis_id: "RC2"
+    subsystem: "drive_motor"
+    action_name: "Inspect Hoistway, Counterweight & Guide Rails for Obstruction"
+    estimated_severity: "HIGH"
+    specific_steps:
+      - "Switch elevator to Inspection Mode (TCI / ERO) from car top or machine room."
+      - "Perform slow-speed inspection run throughout the hoistway shaft."
+      - "Check guide rail alignment, lubricator reservoirs, and safety gear clearances."
+      - "Inspect counterweight frame, traveling cables, and pit area for debris or fouling."
+      - "Verify no foreign objects are wedged between car sill and shaft wall."
+    do_not_do:
+      - "Do NOT run the elevator in automatic high-speed mode until full shaft sweep is verified."
+      - "Do NOT force car movement against a jammed rail."
+
+  INSPECT_AND_ADJUST_BRAKE_SYSTEM:
+    hypothesis_id: "RC3"
+    subsystem: "drive_motor"
+    action_name: "Inspect Brake Air Gap, Release Timing & Solenoid Actuator"
+    estimated_severity: "HIGH"
+    specific_steps:
+      - "Park car safely and secure with rail clamps or car sling props."
+      - "Measure brake shoe air gap using feeler gauges (nominal 0.3 - 0.5 mm per KONE EcoDisc spec)."
+      - "Check brake microswitch adjustment and verify electrical pickup/drop timing."
+      - "Inspect brake springs, linkages, and coil wiring for binding or thermal discoloration."
+      - "Perform static torque holding test with 125% rated test load before returning to service."
+    do_not_do:
+      - "Do NOT lubricate brake friction surfaces or drum lining."
+      - "Do NOT adjust brake spring compression beyond manufacturer stamped limits."
+
+  INSPECT_MOTOR_WINDINGS:
+    hypothesis_id: "RC4"
+    subsystem: "drive_motor"
+    action_name: "Test Motor Winding Resistance & Insulation"
+    estimated_severity: "MEDIUM"
+    specific_steps:
+      - "Disconnect motor terminals U, V, W from drive output."
+      - "Measure phase-to-phase resistance with a micro-ohmmeter (verify balance within 2%)."
+      - "Perform 1000V DC Megger insulation resistance test to ground (> 100 MOhm nominal)."
+      - "Inspect motor thermal sensor (PTC/PT100) resistance."
+    do_not_do:
+      - "Do NOT apply high voltage Megger test with encoder or drive connected."
+
+  INSPECT_LIGHT_CURTAIN_AND_PHOTOEYE:
+    hypothesis_id: "RC1"
+    subsystem: "door"
+    action_name: "Inspect & Clean Door Photo-eye / 3D Light Curtain"
+    estimated_severity: "LOW"
+    specific_steps:
+      - "Clean optical detector lenses on both car door edges with a non-abrasive microfiber cloth."
+      - "Check optical emitter and receiver alignment along entire door travel span."
+      - "Verify light curtain cable harness flexibility in door flexure zone."
+      - "Test dynamic obstruction detection across bottom, middle, and top beams."
+      - "Re-calibrate light curtain ambient light immunity per OEM settings."
+    do_not_do:
+      - "Do NOT use solvent-based cleaners on acrylic optical lenses."
+      - "Do NOT bypass the door reopening safety circuit."
+
+  CLEAR_DOOR_SILL_OBSTRUCTION:
+    hypothesis_id: "RC2"
+    subsystem: "door"
+    action_name: "Inspect & Clear Door Track / Sill Obstruction"
+    estimated_severity: "LOW"
+    specific_steps:
+      - "Inspect car and landing sill grooves for pebbles, coins, or accumulated debris."
+      - "Check door gibs for wear, binding, or excessive clearance in the sill track."
+      - "Vacuum and clean tracks thoroughly."
+      - "Cycle doors manually by hand on inspection mode to verify smooth mechanical motion."
+    do_not_do:
+      - "Do NOT force electric door operator if mechanical bind is present."
+
+  INSPECT_DOOR_ROLLERS_AND_HANGERS:
+    hypothesis_id: "RC3"
+    subsystem: "door"
+    action_name: "Inspect Door Hanger Rollers & Bearings"
+    estimated_severity: "MEDIUM"
+    specific_steps:
+      - "Inspect polyurethane track rollers for flat spots, cracking, or bearing play."
+      - "Check up-thrust rollers clearance (nominal 0.1 - 0.2 mm)."
+      - "Verify door drive belt tension and pulley alignment."
+      - "Lubricate hanger tracks with dry PTFE spray if specified."
+    do_not_do:
+      - "Do NOT use grease on open door roller running surfaces."
+
+  INSPECT_ENCODER_AND_ALIGNMENT:
+    hypothesis_id: "RC1"
+    subsystem: "encoder_position"
+    action_name: "Inspect EcoDisc Motor Encoder & Shielded Cable"
+    estimated_severity: "MEDIUM"
+    specific_steps:
+      - "Inspect encoder mounting bracket and set screws for mechanical looseness."
+      - "Check encoder optical disk / magnetic pickup for contamination or oil mist."
+      - "Verify encoder cable shield grounding at drive chassis (single-point ground)."
+      - "Perform encoder angle learning / calibration sequence via KONE drive user interface."
+      - "Check floor leveling vane sensor alignment at all floor landings."
+    do_not_do:
+      - "Do NOT tap or hammer on encoder body or motor shaft."
+      - "Do NOT run unshielded encoder cables parallel to high-current inverter leads."
+
+  INSPECT_SAFETY_CHAIN_CIRCUIT:
+    hypothesis_id: "RC1"
+    subsystem: "safety_chain"
+    action_name: "Isolate & Verify Safety Chain Continuity & Door Interlocks"
+    estimated_severity: "CRITICAL"
+    specific_steps:
+      - "Measure DC/AC voltage drop across individual safety contacts in series loop."
+      - "Inspect landing door locks and car door gate switch contacts for oxidation or carbon buildup."
+      - "Check buffer switches, governor tension weight switch, and pit stop switches."
+      - "Verify safety relay coil voltage and mechanical armature movement."
+    do_not_do:
+      - "Do NOT jumper or bypass any safety chain contact during automatic passenger service."
+      - "Do NOT reset safety chain without identifying source of circuit opening."
+
+  INSPECT_SENSOR_AND_ENVIRONMENT:
+    hypothesis_id: "RC1"
+    subsystem: "sensor_env"
+    action_name: "Verify Telemetry Sensor Calibration & Machine Room Climate"
+    estimated_severity: "LOW"
+    specific_steps:
+      - "Cross-check sensor reading against external calibrated test instrument."
+      - "Check machine room / hoistway ambient temperature and ventilation fans."
+      - "Inspect sensor wiring harness, termination screws, and moisture ingress."
+    do_not_do:
+      - "Do NOT rely on uncalibrated hand meters for precision current shunt measurements."

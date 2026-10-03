@@ -1,0 +1,71 @@
+# ElevateRCA — Alarm Cascade & Causal Relationship Knowledge Base
+# Based on ISA-18.2 Alarm Management & Elevator Electromechanical Cascades
+
+cascade_rules:
+  - trigger_alarm: "motor_overcurrent"
+    consequential_alarms:
+      - alarm_code: "drive_trip"
+        relationship: "Caused by motor_overcurrent: VFD protective trip on current limit breach"
+        max_lag_seconds: 2.0
+      - alarm_code: "leveling_fault"
+        relationship: "Caused by drive_trip: premature deceleration / mid-shaft emergency halt"
+        max_lag_seconds: 5.0
+      - alarm_code: "safety_chain_trip"
+        relationship: "Caused by drive_trip: drive safety output relay drop-out"
+        max_lag_seconds: 3.0
+
+  - trigger_alarm: "door_obstruction_detected"
+    consequential_alarms:
+      - alarm_code: "door_close_timeout"
+        relationship: "Caused by door_obstruction: repeated recycle attempts exceeding timer"
+        max_lag_seconds: 15.0
+      - alarm_code: "door_reopen_count_exceeded"
+        relationship: "Caused by door_obstruction: optical reopen cycles exceeded threshold"
+        max_lag_seconds: 15.0
+      - alarm_code: "safety_circuit_not_confirmed"
+        relationship: "Caused by door_close_timeout: car unable to lock doors to close safety circuit"
+        max_lag_seconds: 15.0
+
+  - trigger_alarm: "door_close_timeout"
+    consequential_alarms:
+      - alarm_code: "door_lock_not_confirmed"
+        relationship: "Caused by door_close_timeout: mechanical interlock switch not closed"
+        max_lag_seconds: 5.0
+      - alarm_code: "safety_chain_open"
+        relationship: "Caused by unconfirmed door lock holding safety loop open"
+        max_lag_seconds: 5.0
+
+  - trigger_alarm: "brake_fault"
+    consequential_alarms:
+      - alarm_code: "brake_timing_violation"
+        relationship: "Caused by mechanical brake pickup / drop lag"
+        max_lag_seconds: 2.0
+      - alarm_code: "position_drift"
+        relationship: "Caused by brake slipping or delayed hold-in under car weight"
+        max_lag_seconds: 4.0
+      - alarm_code: "safety_chain_trip"
+        relationship: "Caused by brake microswitch mismatch tripping safety relay"
+        max_lag_seconds: 3.0
+
+  - trigger_alarm: "encoder_fault"
+    consequential_alarms:
+      - alarm_code: "speed_feedback_error"
+        relationship: "Caused by encoder pulse loss causing velocity calculator error"
+        max_lag_seconds: 1.0
+      - alarm_code: "position_mismatch"
+        relationship: "Caused by encoder count diverging from floor reference markers"
+        max_lag_seconds: 5.0
+      - alarm_code: "leveling_deviation"
+        relationship: "Caused by position mismatch triggering floor leveling overshoot/undershoot"
+        max_lag_seconds: 8.0
+
+  - trigger_alarm: "safety_chain_open"
+    consequential_alarms:
+      - alarm_code: "drive_trip"
+        relationship: "Caused by safety chain power loss cutting drive main contactors"
+        max_lag_seconds: 1.0
+      - alarm_code: "emergency_stop_activated"
+        relationship: "Caused by controller logging emergency stop state upon safety drop"
+        max_lag_seconds: 1.0
+
+temporal_clustering_window_seconds: 15.0

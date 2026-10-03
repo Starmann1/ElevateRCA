@@ -1,0 +1,40 @@
+{
+  "elevator_id": "KONE-DOOR-104",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MonoSpace 500",
+  "installation_age_years": 5.0,
+  "verification_stage": "SINGLE_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_lock_circuit_open",
+      "alarm_type": "door_lock_circuit_open",
+      "severity": "critical",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T10:15:00.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_lock_confirmed",
+      "value": "FALSE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:15:00.000Z",
+      "baseline_value": "TRUE",
+      "deviation_pct": 0.0
+    },
+    {
+      "signal_name": "door_fully_closed",
+      "value": "TRUE",
+      "unit": "state",
+      "quality": "good",
+      "timestamp": "2026-09-24T10:15:00.000Z",
+      "baseline_value": "TRUE",
+      "deviation_pct": 0.0
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "Door physically reaches full close position but safety circuit remains open. Floor 3 interlock contact pads severely pitted."
+}

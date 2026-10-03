@@ -1,0 +1,72 @@
+{
+  "elevator_id": "KONE-DOOR-201",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MonoSpace 500",
+  "installation_age_years": 4.2,
+  "verification_stage": "TWO_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_close_timeout",
+      "alarm_type": "door_close_timeout",
+      "severity": "critical",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:00:00.000Z",
+      "state": "ACTIVE"
+    },
+    {
+      "alarm_code": "door_motor_overcurrent",
+      "alarm_type": "door_motor_overcurrent",
+      "severity": "warning",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:00:02.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_cycle_time_ms",
+      "value": 4900.0,
+      "unit": "ms",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:00:00.000Z",
+      "baseline_value": 2800.0,
+      "deviation_pct": 75.0
+    },
+    {
+      "signal_name": "door_motor_current",
+      "value": 2.7,
+      "unit": "A",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:00:00.000Z",
+      "baseline_value": 1.5,
+      "deviation_pct": 80.0
+    },
+    {
+      "signal_name": "vibration_rms",
+      "value": 0.22,
+      "unit": "m/s2",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:00:00.000Z",
+      "baseline_value": 0.08,
+      "deviation_pct": 175.0
+    }
+  ],
+  "maintenance_history": [
+    {
+      "date": "2026-06-10T10:00:00Z",
+      "component": "Door Roller",
+      "action": "Replaced worn hanger rollers",
+      "technician_notes": "Replaced top rollers after door timeout fault",
+      "part_replaced": true
+    },
+    {
+      "date": "2026-08-15T14:30:00Z",
+      "component": "Door Roller",
+      "action": "Replaced hanger rollers again",
+      "technician_notes": "Door sticking again, installed new rollers",
+      "part_replaced": true
+    }
+  ],
+  "technician_free_text": "Previous technicians replaced door rollers twice in past 3 months. Door binding persists due to underlying header track geometric distortion."
+}

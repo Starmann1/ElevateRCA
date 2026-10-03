@@ -1,0 +1,49 @@
+{
+  "elevator_id": "KONE-DOOR-203",
+  "timestamp_utc": "2026-09-24T10:00:00.000Z",
+  "operating_state": "DOOR_CLOSE",
+  "elevator_model": "KONE MonoSpace 500",
+  "installation_age_years": 5.1,
+  "verification_stage": "TWO_STAGE",
+  "alarms": [
+    {
+      "alarm_code": "door_close_timeout",
+      "alarm_type": "door_close_timeout",
+      "severity": "critical",
+      "subsystem": "door",
+      "timestamp": "2026-09-24T11:10:00.000Z",
+      "state": "ACTIVE"
+    }
+  ],
+  "telemetry": [
+    {
+      "signal_name": "door_speed_variation",
+      "value": 0.2,
+      "unit": "m/s",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:10:00.000Z",
+      "baseline_value": 0.05,
+      "deviation_pct": 300.0
+    },
+    {
+      "signal_name": "door_motor_current",
+      "value": 2.9,
+      "unit": "A",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:10:00.000Z",
+      "baseline_value": 1.5,
+      "deviation_pct": 93.3
+    },
+    {
+      "signal_name": "door_cycle_time_ms",
+      "value": 5000.0,
+      "unit": "ms",
+      "quality": "good",
+      "timestamp": "2026-09-24T11:10:00.000Z",
+      "baseline_value": 2800.0,
+      "deviation_pct": 78.6
+    }
+  ],
+  "maintenance_history": [],
+  "technician_free_text": "Belt teeth worn, slipping on start. Operator motor winding resistance tests 20% higher than OEM spec."
+}

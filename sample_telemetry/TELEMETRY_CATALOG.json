@@ -1,0 +1,182 @@
+[
+  {
+    "filename": "telemetry_01_door_sill_physical_obstruction.json",
+    "title": "[F14 / #01] Landing Sill Physical Obstruction & High Motor Current",
+    "fault_code": "F14",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-101",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_02_door_photoeye_dirt_attenuation.json",
+    "title": "[F74 / #02] Single-Beam Optical Photo-eye Lens Dust Clouding",
+    "fault_code": "F74",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-102",
+    "model": "KONE MiniSpace"
+  },
+  {
+    "filename": "telemetry_03_door_drive_belt_tension_slip.json",
+    "title": "[F44 / #03] Door Operator Toothed Drive Belt Stretch & Speed Variation",
+    "fault_code": "F44",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-103",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_04_door_lock_contact_oxidation.json",
+    "title": "[F14 / #04] Landing Door Interlock Electrical Contact Oxidation & Loop Break",
+    "fault_code": "F14",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-104",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_05_door_open_limit_switch_jam.json",
+    "title": "[F24 / #05] Door Full-Open Limit Switch (DOL) Open-Circuit Fault",
+    "fault_code": "F24",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-105",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_06_door_close_limit_cam_misalignment.json",
+    "title": "[F34 / #06] Door Full-Close Limit Sensor (DCL) Cam Jam & Timeout",
+    "fault_code": "F34",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-106",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_07_door_operator_motor_thermal_saturation.json",
+    "title": "[F54 / #07] Door Operator PM Motor Torque Loss & Current Rise",
+    "fault_code": "F54",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-107",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_08_door_hanger_roller_bearing_wear.json",
+    "title": "[F54 / #08] Door Hanger Roller Bearing Flat Spot Mechanical Wear",
+    "fault_code": "F54",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-108",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_09_door_reopen_limit_bounce.json",
+    "title": "[F74 / #09] 3D Light Curtain Multi-Beam Optical Degradation & False Reopenings",
+    "fault_code": "F74",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-109",
+    "model": "KONE MiniSpace"
+  },
+  {
+    "filename": "telemetry_10_door_safety_edge_switch_trip.json",
+    "title": "[F14 / #10] Mechanical Safety Edge Shoe Jam & Motor Current Spike",
+    "fault_code": "F14",
+    "verification_stage": "SINGLE_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-110",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_11_door_repeat_roller_misdiagnosis_track_misalignment.json",
+    "title": "[F64 / #11] Door Track Misalignment / Geometric Distortion (Resolving Repeat Roller Swaps)",
+    "fault_code": "F64",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-201",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_12_door_curtain_drift_and_lock_pitting.json",
+    "title": "[F74 / #12] Optical Sensor Drift with Latent Landing Interlock Oxidation",
+    "fault_code": "F74",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-202",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_13_door_operator_belt_slip_and_motor_torque_loss.json",
+    "title": "[F44 / #13] Drive Belt Slack Slip with Secondary Operator Motor Torque Loss",
+    "fault_code": "F44",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-203",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_14_door_track_distortion_and_hanger_roller_flatspots.json",
+    "title": "[F64 / #14] Header Track Binding accompanied by Roller Flat Spot Wear",
+    "fault_code": "F64",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-204",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_15_door_sill_gap_wear_and_interlock_drop.json",
+    "title": "[F14 / #15] Landing Sill Foreign Debris with Interlock Switch Bounce",
+    "fault_code": "F14",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-205",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_16_door_open_limit_and_cable_loom_pinch.json",
+    "title": "[F24 / #16] Door Open Limit Sensor Stuck with Car Gate Harness Pinch",
+    "fault_code": "F24",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-206",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_17_door_photoeye_lens_and_receiver_sync_drift.json",
+    "title": "[F74 / #17] Optical Safety Edge Dust with Multi-Beam Sync Timing Drift",
+    "fault_code": "F74",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-207",
+    "model": "KONE MiniSpace"
+  },
+  {
+    "filename": "telemetry_18_door_close_limit_cam_and_roller_eccentric_gap.json",
+    "title": "[F34 / #18] DCL Limit Sensor Cam Binding with Roller Eccentric Gap Runout",
+    "fault_code": "F34",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-208",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_19_door_motor_driver_inverter_and_belt_friction.json",
+    "title": "[F54 / #19] Door Driver Board Current Sense Drift with Toothed Belt Friction",
+    "fault_code": "F54",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-209",
+    "model": "KONE MonoSpace 500"
+  },
+  {
+    "filename": "telemetry_20_door_interlock_hook_depth_and_sill_alignment.json",
+    "title": "[F14 / #20] Landing Interlock Hook Depth Drop with Sill Guide Distortion",
+    "fault_code": "F14",
+    "verification_stage": "TWO_STAGE",
+    "subsystem": "door",
+    "elevator_id": "KONE-DOOR-210",
+    "model": "KONE MonoSpace 500"
+  }
+]

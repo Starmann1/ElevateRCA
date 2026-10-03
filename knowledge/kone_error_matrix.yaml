@@ -1,0 +1,331 @@
+# KONE Controller Error Table Matrix
+# Maps Error Rank (F1-F7) x Error Generation Part (Cols 1-8) to Subsystem, Severity & Root Cause
+
+matrix_meta:
+  name: "Elevator Controller 2D Error Matrix"
+  columns:
+    1: { id: "SYSTEM", name: "System Error", subsystem: "safety_chain" }
+    2: { id: "ENCODER", name: "Encoder Error", subsystem: "encoder_position" }
+    3: { id: "COMM", name: "Comm. Error", subsystem: "safety_chain" }
+    4: { id: "DOOR", name: "Door Error", subsystem: "door" }
+    5: { id: "INVERTER", name: "Inverter Error", subsystem: "drive_motor" }
+    6: { id: "BRAKE", name: "Brake Error", subsystem: "brake_traction" }
+    7: { id: "SWITCH", name: "Switch Error", subsystem: "safety_chain" }
+    8: { id: "ERROR8", name: "Network / Hall Error", subsystem: "safety_chain" }
+  ranks: ["F1", "F2", "F3", "F4", "F5", "F6", "F7"]
+
+error_codes:
+  # COLUMN 1: SYSTEM ERROR
+  - code: "F11"
+    rank: "F1"
+    col: 1
+    col_name: "SYSTEM ERROR"
+    subsystem: "safety_chain"
+    title: "SAFETY ERROR MC FAULT"
+    description: "Main Contactor (MC) hardware fault or safety line interruption during energized state."
+    severity: "CRITICAL"
+    typical_cause: "Safety contactor coil failure or auxiliary contact pitting."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F21"
+    rank: "F2"
+    col: 1
+    col_name: "SYSTEM ERROR"
+    subsystem: "drive_motor"
+    title: "ANTI-STALL ERROR"
+    description: "Motor energized without car motion detected; anti-stall safety timer trip."
+    severity: "CRITICAL"
+    typical_cause: "Mechanical brake locked, guide shoe seized, or motor phase loss."
+    sop: "INSPECT_DRIVE_AND_MOTOR"
+
+  # COLUMN 2: ENCODER ERROR
+  - code: "F22"
+    rank: "F2"
+    col: 2
+    col_name: "ENCODER ERROR"
+    subsystem: "encoder_position"
+    title: "FLOOR ERROR (IN CASE '00') TOP FLOOR UNMATCH"
+    description: "Floor count mismatch at terminal floor landing / position synchronizer unmatch."
+    severity: "WARNING"
+    typical_cause: "Terminal floor synchronization vane missed or encoder pulse slippage."
+    sop: "INSPECT_ENCODER_AND_ALIGNMENT"
+
+  - code: "F32"
+    rank: "F3"
+    col: 2
+    col_name: "ENCODER ERROR"
+    subsystem: "encoder_position"
+    title: "ENCODER CPU ERROR"
+    description: "Position processor CPU communication or calculation integrity fault."
+    severity: "CRITICAL"
+    typical_cause: "Encoder interface board digital failure or electrical noise on pulse bus."
+    sop: "INSPECT_ENCODER_AND_ALIGNMENT"
+
+  - code: "F42"
+    rank: "F4"
+    col: 2
+    col_name: "ENCODER ERROR"
+    subsystem: "encoder_position"
+    title: "FLOOR MEASUREMENT OPR. ERROR"
+    description: "Shaft learning / floor height measurement operational run failure."
+    severity: "WARNING"
+    typical_cause: "Floor vane height spacing discrepancy or uneven door zone magnets."
+    sop: "INSPECT_ENCODER_AND_ALIGNMENT"
+
+  - code: "F52"
+    rank: "F5"
+    col: 2
+    col_name: "ENCODER ERROR"
+    subsystem: "encoder_position"
+    title: "PULSE ERROR"
+    description: "Missing encoder quadrature pulses or pulse count discontinuity during travel."
+    severity: "CRITICAL"
+    typical_cause: "Optical encoder disk contamination or loose mechanical coupling."
+    sop: "INSPECT_ENCODER_AND_ALIGNMENT"
+
+  - code: "F62"
+    rank: "F6"
+    col: 2
+    col_name: "ENCODER ERROR"
+    subsystem: "encoder_position"
+    title: "UL/DL INPUT ERROR"
+    description: "Upper Level / Down Level slowdown sensor input conflict or logic mismatch."
+    severity: "WARNING"
+    typical_cause: "Directional slowdown limit switch stuck or optical sensor clouded."
+    sop: "INSPECT_ENCODER_AND_ALIGNMENT"
+
+  # COLUMN 3: COMM. ERROR
+  - code: "F23"
+    rank: "F2"
+    col: 3
+    col_name: "COMM. ERROR"
+    subsystem: "safety_chain"
+    title: "RAM BACK-UP ERROR"
+    description: "Battery-backed NVRAM corruption or configuration checksum mismatch on startup."
+    severity: "WARNING"
+    typical_cause: "CMOS backup battery low voltage or power rail glitch."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F33"
+    rank: "F3"
+    col: 3
+    col_name: "COMM. ERROR"
+    subsystem: "safety_chain"
+    title: "SERIAL CPU ERROR (8031 / M33)"
+    description: "Communication coprocessor (8031/M33) heartbeat lost or bus timeout."
+    severity: "CRITICAL"
+    typical_cause: "Serial UART clock failure or corrupted microcode."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F43"
+    rank: "F4"
+    col: 3
+    col_name: "COMM. ERROR"
+    subsystem: "safety_chain"
+    title: "DUAL PORT RAM ERROR"
+    description: "Shared memory arbitration collision between main CPU and drive controller."
+    severity: "WARNING"
+    typical_cause: "Bus arbitration timing delay or ribbon cable noise."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F53"
+    rank: "F5"
+    col: 3
+    col_name: "COMM. ERROR"
+    subsystem: "safety_chain"
+    title: "CAR COMM. ERROR"
+    description: "Traveling cable RS485 / CAN communication link drop to Car Operating Panel."
+    severity: "WARNING"
+    typical_cause: "Traveling cable core wire intermittent break or shielded ground loose."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F63"
+    rank: "F6"
+    col: 3
+    col_name: "COMM. ERROR"
+    subsystem: "safety_chain"
+    title: "CAR CAN CPU / SERIAL COMM. ERROR"
+    description: "Car station CAN transceiver framing error or differential line float."
+    severity: "WARNING"
+    typical_cause: "120 Ohm termination resistor missing or transceiver thermal latch-up."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F73"
+    rank: "F7"
+    col: 3
+    col_name: "COMM. ERROR"
+    subsystem: "safety_chain"
+    title: "CHECK SUM ERROR"
+    description: "Flash memory / Parameter EPROM checksum calculation mismatch."
+    severity: "CRITICAL"
+    typical_cause: "Corrupt parameter block or flash cell write degradation."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  # COLUMN 4: DOOR ERROR
+  - code: "F14"
+    rank: "F1"
+    col: 4
+    col_name: "DOOR ERROR"
+    subsystem: "door"
+    title: "X40 ERROR"
+    description: "Door zone safety bypass / X40 door interlock circuit open during motion."
+    severity: "CRITICAL"
+    typical_cause: "Landing door lock contact bounced open while car was traveling."
+    sop: "INSPECT_DOOR_SYSTEM"
+
+  - code: "F24"
+    rank: "F2"
+    col: 4
+    col_name: "DOOR ERROR"
+    subsystem: "door"
+    title: "DOL_DCL_ERROR"
+    description: "Simultaneous Door Open Limit (DOL) and Door Close Limit (DCL) signal asserted."
+    severity: "WARNING"
+    typical_cause: "Limit switch short-circuit, wiring loom pinch, or sensor microswitch jam."
+    sop: "INSPECT_DOOR_SYSTEM"
+
+  - code: "F34"
+    rank: "F3"
+    col: 4
+    col_name: "DOOR ERROR"
+    subsystem: "door"
+    title: "DCL_ERROR"
+    description: "Door Close Limit (DCL) not reached within programmed run time."
+    severity: "WARNING"
+    typical_cause: "Sill debris, belt slip, or door track misalignment."
+    sop: "INSPECT_DOOR_ROLLERS_AND_HANGERS"
+
+  - code: "F44"
+    rank: "F4"
+    col: 4
+    col_name: "DOOR ERROR"
+    subsystem: "door"
+    title: "DOL_ERROR"
+    description: "Door Open Limit (DOL) not reached within programmed opening time."
+    severity: "WARNING"
+    typical_cause: "Door operator motor torque drop, skate jam, or mechanical obstruction."
+    sop: "INSPECT_DOOR_SYSTEM"
+
+  - code: "F54"
+    rank: "F5"
+    col: 4
+    col_name: "DOOR ERROR"
+    subsystem: "door"
+    title: "CLOSE_FAULT1"
+    description: "Door closing attempt failed due to excessive mechanical drag on first retry."
+    severity: "WARNING"
+    typical_cause: "Hanger roller flat spots or sill dirt accumulation."
+    sop: "INSPECT_DOOR_ROLLERS_AND_HANGERS"
+
+  - code: "F64"
+    rank: "F6"
+    col: 4
+    col_name: "DOOR ERROR"
+    subsystem: "door"
+    title: "CLOSE_FAULT2"
+    description: "Door closing retry limit exceeded; nudging mode activated or door held open."
+    severity: "CRITICAL"
+    typical_cause: "Severe track geometric misalignment / persistent physical blockage."
+    sop: "INSPECT_DOOR_ROLLERS_AND_HANGERS"
+
+  # COLUMN 5: INVERTER ERROR
+  - code: "F15"
+    rank: "F1"
+    col: 5
+    col_name: "INVERTER ERROR"
+    subsystem: "drive_motor"
+    title: "X30B ERROR (AFTER 2SEC)"
+    description: "Drive enable / X30B main power contactor feedback not confirmed within 2 seconds."
+    severity: "CRITICAL"
+    typical_cause: "Inverter pre-charge circuit fault, contactor coil open, or auxiliary contact wear."
+    sop: "INSPECT_DRIVE_AND_MOTOR"
+
+  - code: "F25"
+    rank: "F2"
+    col: 5
+    col_name: "INVERTER ERROR"
+    subsystem: "drive_motor"
+    title: "INVERTER OUTPUT ERROR (AFTER 5SEC)"
+    description: "Inverter phase output current unbalanced or missing phase after 5 seconds of run."
+    severity: "CRITICAL"
+    typical_cause: "IGBT module breakdown, motor cable termination loose, or stator phase short."
+    sop: "INSPECT_DRIVE_AND_MOTOR"
+
+  - code: "F35"
+    rank: "F3"
+    col: 5
+    col_name: "INVERTER ERROR"
+    subsystem: "drive_motor"
+    title: "INVERTER SETTING ERROR (AFTER 4SEC)"
+    description: "Drive motor parameters / vector control tuning mismatch after 4 seconds."
+    severity: "WARNING"
+    typical_cause: "Motor pole number, current limit, or encoder resolution parameter incorrect."
+    sop: "INSPECT_DRIVE_AND_MOTOR"
+
+  - code: "F45"
+    rank: "F4"
+    col: 5
+    col_name: "INVERTER ERROR"
+    subsystem: "drive_motor"
+    title: "INVERTER RUN ERROR (AFTER RUN)"
+    description: "Drive tripped on overvoltage / overcurrent during active deceleration profile."
+    severity: "CRITICAL"
+    typical_cause: "Regenerative braking resistor open or DC bus capacitor aging."
+    sop: "INSPECT_DRIVE_AND_MOTOR"
+
+  # COLUMN 7: SWITCH ERROR
+  - code: "F17"
+    rank: "F1"
+    col: 7
+    col_name: "SWITCH ERROR"
+    subsystem: "safety_chain"
+    title: "ULS/DLS ERROR"
+    description: "Upper Final Limit Switch (ULS) or Down Final Limit Switch (DLS) actuated."
+    severity: "CRITICAL"
+    typical_cause: "Car overtravelled terminal landing past final limit cam."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F27"
+    rank: "F2"
+    col: 7
+    col_name: "SWITCH ERROR"
+    subsystem: "safety_chain"
+    title: "PLU/PLD ERROR"
+    description: "Position Limit Up (PLU) / Position Limit Down (PLD) switch logic mismatch."
+    severity: "WARNING"
+    typical_cause: "Shaft terminal slowdown roller switch mechanical arm stuck."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F37"
+    rank: "F3"
+    col: 7
+    col_name: "SWITCH ERROR"
+    subsystem: "safety_chain"
+    title: "LCD ERROR"
+    description: "Service tool / Maintenance display LCD driver interface communication fault."
+    severity: "LOW"
+    typical_cause: "Display ribbon cable loose or LCD controller IC latch-up."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  - code: "F57"
+    rank: "F5"
+    col: 7
+    col_name: "SWITCH ERROR"
+    subsystem: "safety_chain"
+    title: "DECEL ERROR (PLU/PLD)"
+    description: "Deceleration rate check failure when crossing terminal slowdown switches."
+    severity: "CRITICAL"
+    typical_cause: "Traction slip or excessive car speed approaching terminal floor."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
+
+  # COLUMN 8: ERROR 8
+  - code: "F68"
+    rank: "F6"
+    col: 8
+    col_name: "ERROR 8"
+    subsystem: "safety_chain"
+    title: "HALL COMM. ERROR"
+    description: "Hall Call Station network bus communication drop across landing risers."
+    severity: "WARNING"
+    typical_cause: "Hall riser wiring break or landing push button station node failure."
+    sop: "INSPECT_SAFETY_CHAIN_CIRCUIT"
